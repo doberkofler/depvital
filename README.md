@@ -38,6 +38,9 @@ node dist/index.mjs --json
 
 # Debugging
 node dist/index.mjs --debug
+
+# Suppress progress bar
+node dist/index.mjs --no-progress
 ```
 
 ## Development Workflow

@@ -13,3 +13,4 @@ Build/Lint/Test:
 - It fetches outdated status, security vulnerabilities (audit), maintenance health (GitHub), and changelogs.
 - Caching is used by default to avoid GitHub API rate limits.
 - Use `--debug` to see the internal execution steps and Zod validation results.
+- Use `--no-progress` to suppress the progress bar.

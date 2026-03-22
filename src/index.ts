@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import {Command} from 'commander';
-import {analyze} from './analyzer.js';
+import {analyze, type AnalysisResult} from './analyzer.js';
 import {ConfigSchema} from './types.js';
 import {SingleBar, Presets} from 'cli-progress';
 import createDebug from 'debug';
@@ -45,7 +45,7 @@ program
 
 		try {
 			debug('Starting analysis...');
-			const {results, githubRateLimitHit} = await analyze(config, (current, total) => {
+			const {results, githubRateLimitHit, stats} = await analyze(config, (current, total) => {
 				if (bar) {
 					if (total > 0) {
 						bar.setTotal(total);
@@ -61,10 +61,10 @@ program
 
 			if (config.json) {
 				debug('Outputting JSON results');
-				console.log(JSON.stringify(results, null, 2));
+				console.log(JSON.stringify({results, stats}, null, 2));
 			} else {
 				debug('Printing table results');
-				printTable(results, githubRateLimitHit);
+				printTable(results, githubRateLimitHit, stats);
 			}
 
 			// Check for fail-on threshold
@@ -117,7 +117,7 @@ function formatHumanAge(lastRelease: string | null): string {
 	return `${years}y`;
 }
 
-function printTable(results: any[], githubRateLimitHit: boolean) {
+function printTable(results: any[], githubRateLimitHit: boolean, stats: AnalysisResult['stats']) {
 	if (results.length === 0) {
 		console.log('No outdated dependencies found.');
 		return;
@@ -126,6 +126,8 @@ function printTable(results: any[], githubRateLimitHit: boolean) {
 	const RED = '\x1b[31m';
 	const RESET = '\x1b[0m';
 	const YELLOW = '\x1b[33m';
+	const GREEN = '\x1b[32m';
+	const BOLD = '\x1b[1m';
 
 	const headers = ['Package', 'Current', 'Latest', 'Vulnerable', 'Last release', 'GitHub', 'Changelog'];
 	const columnWidths = headers.map((h) => h.length);
@@ -178,6 +180,18 @@ function printTable(results: any[], githubRateLimitHit: boolean) {
 		console.log(`\n${YELLOW}⚠️  GitHub API rate limit exceeded. GitHub metadata (stars/issues) may be missing.${RESET}`);
 		console.log(`${YELLOW}   Provide a --github-token to ensure complete data.${RESET}`);
 	}
+
+	console.log(`\n${BOLD}Summary:${RESET}`);
+	console.log(`- Total packages:    ${stats.totalPackages}`);
+	console.log(`- Outdated:          ${stats.outdatedPackages > 0 ? RED : GREEN}${stats.outdatedPackages}${RESET}`);
+	console.log(`- Vulnerable:        ${stats.vulnerablePackages > 0 ? RED : GREEN}${stats.vulnerablePackages}${RESET}`);
+	console.log(`- Unmaintained:      ${stats.unmaintainedPackages > 0 ? RED : GREEN}${stats.unmaintainedPackages}${RESET}`);
+
+	console.log(`\n${BOLD}Caching:${RESET}`);
+	console.log(`- Hits:              ${stats.cacheHits}`);
+	console.log(`- Misses:            ${stats.cacheMisses}`);
+
+	console.log(`\n${BOLD}Processing time:${RESET} ${(stats.durationMs / 1000).toFixed(2)}s\n`);
 }
 
 program.parse();

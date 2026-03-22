@@ -11,9 +11,19 @@ export type ProgressCallback = (current: number, total: number) => void;
 export type AnalysisResult = {
 	results: Result[];
 	githubRateLimitHit: boolean;
+	stats: {
+		totalPackages: number;
+		outdatedPackages: number;
+		vulnerablePackages: number;
+		unmaintainedPackages: number;
+		cacheHits: number;
+		cacheMisses: number;
+		durationMs: number;
+	};
 };
 
 export async function analyze(configInput: Config, onProgress?: ProgressCallback): Promise<AnalysisResult> {
+	const startTime = Date.now();
 	debug('Analyzing with input config: %O', configInput);
 	const config = ConfigSchema.parse(configInput);
 
@@ -46,6 +56,8 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 	const total = combinedDeps.length;
 	let current = 0;
 	let githubRateLimitHit = false;
+	let cacheHits = 0;
+	let cacheMisses = 0;
 
 	if (onProgress) {
 		onProgress(0, total);
@@ -61,9 +73,11 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 		if (cached) {
 			debug('Using cached result for: %s', pkg.name);
 			results.push(cached);
+			cacheHits++;
 			continue;
 		}
 
+		cacheMisses++;
 		debug('Resolving repository for: %s', pkg.name);
 		const repo = await resolvePackageRepo(pkg.name);
 
@@ -150,7 +164,17 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 		await cache.save();
 	}
 
-	return {results, githubRateLimitHit};
+	const stats = {
+		totalPackages: results.length,
+		outdatedPackages: results.filter((r) => r.outdated).length,
+		vulnerablePackages: results.filter((r) => r.vulnerabilities.length > 0).length,
+		unmaintainedPackages: results.filter((r) => r.maintenance.isMaintained === false).length,
+		cacheHits,
+		cacheMisses,
+		durationMs: Date.now() - startTime,
+	};
+
+	return {results, githubRateLimitHit, stats};
 }
 
 function calculateHealthScore(metadata: GitHubMetadata, diffDays: number): number {

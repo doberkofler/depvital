@@ -1,6 +1,9 @@
 # dependencies
 node_modules/
 
+# md
+**/*.md
+
 # build outputs
 dist/
 build/

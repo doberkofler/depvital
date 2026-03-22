@@ -212,3 +212,27 @@ export async function getAudit(pm: 'npm' | 'yarn' | 'pnpm'): Promise<AuditResult
 
 	return result;
 }
+
+export async function getReleaseDate(pm: 'npm' | 'yarn' | 'pnpm', packageName: string): Promise<string | null> {
+	let command = '';
+	if (pm === 'npm') {
+		command = `npm view ${packageName} time.modified --json`;
+	} else if (pm === 'pnpm') {
+		command = `pnpm view ${packageName} time.modified --json`;
+	} else if (pm === 'yarn') {
+		command = `yarn info ${packageName} time.modified --json`;
+	}
+
+	debug('Executing release date command: %s', command);
+	try {
+		const {stdout} = await runCommand(command);
+		if (!stdout.trim()) {
+			return null;
+		}
+		const date = JSON.parse(stdout);
+		return typeof date === 'string' ? date : null;
+	} catch (error) {
+		debug('Error fetching release date for %s: %O', packageName, error);
+		return null;
+	}
+}

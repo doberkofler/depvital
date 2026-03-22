@@ -15,8 +15,8 @@ const mockResult: Result = {
 	vulnerabilities: [],
 	deprecated: false,
 	maintenance: {
-		lastCommit: '2024-01-01',
-		daysSinceLastCommit: 10,
+		lastRelease: '2024-01-01',
+		daysSinceLastRelease: 10,
 		isMaintained: true,
 		healthScore: 0.8,
 	},

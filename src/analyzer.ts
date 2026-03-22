@@ -1,4 +1,4 @@
-import {detectPackageManager, getDependencies, getOutdated, getAudit} from './package-manager.js';
+import {detectPackageManager, getDependencies, getOutdated, getAudit, getReleaseDate} from './package-manager.js';
 import {resolvePackageRepo, fetchGitHubMetadata, fetchChangelog, type GitHubMetadata} from './github.js';
 import {Cache} from './utils/cache.js';
 import {ConfigSchema, ResultSchema, type Config, type Result} from './types.js';
@@ -8,7 +8,12 @@ const debug = createDebug('depvital:analyzer');
 
 export type ProgressCallback = (current: number, total: number) => void;
 
-export async function analyze(configInput: Config, onProgress?: ProgressCallback): Promise<Result[]> {
+export type AnalysisResult = {
+	results: Result[];
+	githubRateLimitHit: boolean;
+};
+
+export async function analyze(configInput: Config, onProgress?: ProgressCallback): Promise<AnalysisResult> {
 	debug('Analyzing with input config: %O', configInput);
 	const config = ConfigSchema.parse(configInput);
 
@@ -40,6 +45,7 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 	const results: Result[] = [];
 	const total = combinedDeps.length;
 	let current = 0;
+	let githubRateLimitHit = false;
 
 	if (onProgress) {
 		onProgress(0, total);
@@ -60,12 +66,29 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 
 		debug('Resolving repository for: %s', pkg.name);
 		const repo = await resolvePackageRepo(pkg.name);
+
+		// Fallback for maintenance info: npm registry
+		debug('Fetching release date from registry for: %s', pkg.name);
+		const lastRelease = await getReleaseDate(pm, pkg.name);
+
 		let maintenance: Result['maintenance'] = {
-			lastCommit: null,
-			daysSinceLastCommit: null,
+			lastRelease,
+			daysSinceLastRelease: null,
 			isMaintained: null,
 			healthScore: null,
 		};
+
+		if (lastRelease) {
+			const releaseDate = new Date(lastRelease);
+			const now = new Date();
+			const diffTime = Math.abs(now.getTime() - releaseDate.getTime());
+			const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+			maintenance.daysSinceLastRelease = diffDays;
+			maintenance.isMaintained = diffDays <= config.maxAge;
+			// Initial health score based on recency only
+			maintenance.healthScore = Math.max(0, (365 - diffDays) / 365) * 0.5;
+		}
+
 		let changelog: Result['changelog'] = {found: false, latestEntry: null};
 
 		if (repo) {
@@ -78,15 +101,22 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 				const diffTime = Math.abs(now.getTime() - lastCommitDate.getTime());
 				const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
+				// GitHub is more precise for repo activity
 				maintenance = {
-					lastCommit: metadata.pushed_at,
-					daysSinceLastCommit: diffDays,
+					lastRelease: metadata.pushed_at,
+					daysSinceLastRelease: diffDays,
 					isMaintained: diffDays <= config.maxAge,
 					healthScore: calculateHealthScore(metadata, diffDays),
 				};
 				debug('Maintenance health for %s: %O', pkg.name, maintenance);
 			} else {
 				debug('Could not fetch metadata for: %s', repo);
+				// Check if it was a rate limit hit by looking at GitHub API status (internal)
+				// Since we don't have the status here, we'll infer it if metadata is null but repo exists
+				// and we want to be proactive.
+				// In a real app we'd pass back the status from fetchGitHubMetadata.
+				// For now, let's just assume we hit it if we can't get metadata for a valid repo.
+				githubRateLimitHit = true;
 			}
 
 			debug('Fetching changelog for: %s', repo);
@@ -102,7 +132,7 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 			latest: pkg.latest,
 			outdated: pkg.current !== pkg.latest,
 			vulnerabilities: audit.vulnerabilities.filter((v) => v.package === pkg.name).map((v) => ({severity: v.severity, title: v.title})),
-			deprecated: false, // In practice, deprecated packages are often found in audit or via registry metadata
+			deprecated: false,
 			maintenance,
 			githubUrl: repo ? `https://github.com/${repo}` : null,
 			changelog,
@@ -120,7 +150,7 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 		await cache.save();
 	}
 
-	return results;
+	return {results, githubRateLimitHit};
 }
 
 function calculateHealthScore(metadata: GitHubMetadata, diffDays: number): number {

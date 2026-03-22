@@ -45,6 +45,7 @@ describe('analyzer', () => {
 			vulnerabilities: [{severity: 'high', title: 'Vuln', package: 'pkg2'}],
 			deprecated: [],
 		});
+		vi.mocked(pm.getReleaseDate).mockResolvedValue(new Date().toISOString());
 
 		vi.mocked(github.resolvePackageRepo).mockResolvedValue('user/repo');
 		vi.mocked(github.fetchGitHubMetadata).mockResolvedValue({
@@ -68,18 +69,18 @@ describe('analyzer', () => {
 			progress: true,
 		};
 
-		const results = await analyze(config);
+		const {results} = await analyze(config);
 
 		expect(results).toHaveLength(2);
 
 		// pkg1 should be outdated
-		const res1 = results.find((r) => r.package === 'pkg1');
+		const res1 = results.find((r: any) => r.package === 'pkg1');
 		expect(res1?.outdated).toBe(true);
 		expect(res1?.latest).toBe('2.0.0');
 		expect(res1?.githubUrl).toBe('https://github.com/user/repo');
 
 		// pkg2 should have vulnerability
-		const res2 = results.find((r) => r.package === 'pkg2');
+		const res2 = results.find((r: any) => r.package === 'pkg2');
 		expect(res2?.vulnerabilities).toHaveLength(1);
 		expect(res2?.outdated).toBe(false);
 		expect(res2?.githubUrl).toBe('https://github.com/user/repo');
@@ -98,6 +99,7 @@ describe('analyzer', () => {
 		]);
 		vi.mocked(pm.getOutdated).mockResolvedValue([]);
 		vi.mocked(pm.getAudit).mockResolvedValue({vulnerabilities: [], deprecated: []});
+		vi.mocked(pm.getReleaseDate).mockResolvedValue(null);
 
 		const loadSpy = vi.spyOn(Cache.prototype, 'load').mockResolvedValue();
 		const getSpy = vi.spyOn(Cache.prototype, 'get').mockReturnValue({
@@ -106,7 +108,7 @@ describe('analyzer', () => {
 			latest: '1.0.0',
 			outdated: false,
 			vulnerabilities: [],
-			maintenance: {isMaintained: true, healthScore: 0.9, lastCommit: null, daysSinceLastCommit: null},
+			maintenance: {isMaintained: true, healthScore: 0.9, lastRelease: null, daysSinceLastRelease: null},
 			changelog: {found: false, url: null, latestEntry: null},
 			deprecated: false,
 		});
@@ -120,7 +122,7 @@ describe('analyzer', () => {
 			progress: true,
 		};
 
-		const results = await analyze(config);
+		const {results} = await analyze(config);
 		expect(results).toHaveLength(1);
 		expect(loadSpy).toHaveBeenCalled();
 		expect(getSpy).toHaveBeenCalledWith('pkg1');
@@ -139,6 +141,7 @@ describe('analyzer', () => {
 		]);
 		vi.mocked(pm.getOutdated).mockResolvedValue([]);
 		vi.mocked(pm.getAudit).mockResolvedValue({vulnerabilities: [], deprecated: []});
+		vi.mocked(pm.getReleaseDate).mockResolvedValue(null);
 
 		vi.mocked(github.resolvePackageRepo).mockResolvedValue(null);
 		const setSpy = vi.spyOn(Cache.prototype, 'set');
@@ -166,6 +169,7 @@ describe('analyzer', () => {
 		]);
 		vi.mocked(pm.getOutdated).mockResolvedValue([]);
 		vi.mocked(pm.getAudit).mockResolvedValue({vulnerabilities: [], deprecated: []});
+		vi.mocked(pm.getReleaseDate).mockResolvedValue(null);
 		vi.mocked(github.resolvePackageRepo).mockResolvedValue(null);
 
 		const onProgress = vi.fn();

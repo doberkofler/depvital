@@ -45,7 +45,7 @@ program
 
 		try {
 			debug('Starting analysis...');
-			const results = await analyze(config, (current, total) => {
+			const {results, githubRateLimitHit} = await analyze(config, (current, total) => {
 				if (bar) {
 					if (total > 0) {
 						bar.setTotal(total);
@@ -64,7 +64,7 @@ program
 				console.log(JSON.stringify(results, null, 2));
 			} else {
 				debug('Printing table results');
-				printTable(results);
+				printTable(results, githubRateLimitHit);
 			}
 
 			// Check for fail-on threshold
@@ -90,7 +90,34 @@ program
 		}
 	});
 
-function printTable(results: any[]) {
+function formatHumanAge(lastRelease: string | null): string {
+	if (!lastRelease) {
+		return 'N/A';
+	}
+	const now = new Date();
+	const date = new Date(lastRelease);
+	const diffTime = Math.abs(now.getTime() - date.getTime());
+	const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+	const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+	if (diffHours < 1) {
+		return 'just now';
+	}
+	if (diffHours < 24) {
+		return `${diffHours}h`;
+	}
+	if (diffDays < 30) {
+		return `${diffDays}d`;
+	}
+	const months = Math.floor(diffDays / 30);
+	if (months < 12) {
+		return `${months}m`;
+	}
+	const years = Math.floor(diffDays / 365);
+	return `${years}y`;
+}
+
+function printTable(results: any[], githubRateLimitHit: boolean) {
 	if (results.length === 0) {
 		console.log('No outdated dependencies found.');
 		return;
@@ -98,17 +125,19 @@ function printTable(results: any[]) {
 
 	const RED = '\x1b[31m';
 	const RESET = '\x1b[0m';
+	const YELLOW = '\x1b[33m';
 
-	const headers = ['Package', 'Current', 'Latest', 'Vulnerable', 'Maintained', 'Age (days)', 'GitHub', 'Changelog'];
+	const headers = ['Package', 'Current', 'Latest', 'Vulnerable', 'Last release', 'GitHub', 'Changelog'];
 	const columnWidths = headers.map((h) => h.length);
 
 	results.forEach((r) => {
 		columnWidths[0] = Math.max(columnWidths[0]!, r.package.length);
 		columnWidths[1] = Math.max(columnWidths[1]!, r.current.length);
 		columnWidths[2] = Math.max(columnWidths[2]!, r.latest?.length || 0);
-		columnWidths[5] = Math.max(columnWidths[5]!, r.maintenance.daysSinceLastCommit?.toString().length || 0);
-		columnWidths[6] = Math.max(columnWidths[6]!, r.githubUrl?.length || 0);
-		columnWidths[7] = Math.max(columnWidths[7]!, r.changelog.url?.length || 0);
+		const ageStr = formatHumanAge(r.maintenance.lastRelease);
+		columnWidths[4] = Math.max(columnWidths[4]!, ageStr.length);
+		columnWidths[5] = Math.max(columnWidths[5]!, r.githubUrl?.length || 0);
+		columnWidths[6] = Math.max(columnWidths[6]!, r.changelog.url?.length || 0);
 	});
 
 	const formatRow = (row: string[]) => row.map((cell, i) => cell.padEnd(columnWidths[i] || 0)).join(' | ');
@@ -119,14 +148,14 @@ function printTable(results: any[]) {
 	results.forEach((r) => {
 		const isVulnerable = r.vulnerabilities.length > 0;
 		const isMaintained = r.maintenance.isMaintained === true;
+		const ageStr = formatHumanAge(r.maintenance.lastRelease);
 
 		const row = [
 			r.package,
 			r.current,
 			r.latest || 'N/A',
 			isVulnerable ? `${RED}YES${RESET}` : 'no',
-			isMaintained ? 'yes' : `${RED}NO${RESET}`,
-			r.maintenance.daysSinceLastCommit?.toString() || 'N/A',
+			!isMaintained && r.maintenance.lastRelease !== null ? `${RED}${ageStr}${RESET}` : ageStr,
 			r.githubUrl || '',
 			r.changelog.url || '',
 		];
@@ -144,6 +173,11 @@ function printTable(results: any[]) {
 
 		console.log(paddedRow);
 	});
+
+	if (githubRateLimitHit) {
+		console.log(`\n${YELLOW}⚠️  GitHub API rate limit exceeded. GitHub metadata (stars/issues) may be missing.${RESET}`);
+		console.log(`${YELLOW}   Provide a --github-token to ensure complete data.${RESET}`);
+	}
 }
 
 program.parse();

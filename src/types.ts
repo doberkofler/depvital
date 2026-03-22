@@ -13,8 +13,8 @@ export const ResultSchema = z.object({
 	),
 	deprecated: z.boolean(),
 	maintenance: z.object({
-		lastCommit: z.string().nullable(),
-		daysSinceLastCommit: z.number().nullable(),
+		lastRelease: z.string().nullable(),
+		daysSinceLastRelease: z.number().nullable(),
 		isMaintained: z.boolean().nullable(),
 		healthScore: z.number().nullable(),
 	}),

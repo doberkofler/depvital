@@ -96,7 +96,6 @@ export async function getOutdated(pm: 'npm' | 'yarn' | 'pnpm', includeDev: boole
 	}
 
 	try {
-		const json = JSON.parse(stdout);
 		if (pm === 'yarn') {
 			debug('Parsing yarn outdated output...');
 			const lines = stdout.split('\n');
@@ -121,6 +120,7 @@ export async function getOutdated(pm: 'npm' | 'yarn' | 'pnpm', includeDev: boole
 		}
 
 		debug('Parsing %s outdated output...', pm);
+		const json = JSON.parse(stdout);
 		const data = NpmOutdatedSchema.parse(json);
 		const results = Object.entries(data).map(([name, info]) => ({
 			name,
@@ -157,9 +157,9 @@ export async function getAudit(pm: 'npm' | 'yarn' | 'pnpm'): Promise<AuditResult
 	}
 
 	try {
-		const json = JSON.parse(stdout);
 		if (pm === 'npm' || pm === 'pnpm') {
 			debug('Parsing %s audit output...', pm);
+			const json = JSON.parse(stdout);
 			const data = NpmAuditSchema.parse(json);
 			const advisories = data.advisories || data.vulnerabilities || {};
 

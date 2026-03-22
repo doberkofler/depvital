@@ -59,4 +59,37 @@ describe('Cache', () => {
 		cache.clear();
 		expect(cache.get('pkg1')).toBeUndefined();
 	});
+
+	it('should handle validation failure when loading from file', async () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFile).mockResolvedValue(JSON.stringify({pkg1: {invalid: 'data'}}));
+
+		const cache = new Cache();
+		await cache.load();
+		expect(cache.get('pkg1')).toBeUndefined();
+	});
+
+	it('should handle error when loading from file', async () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFile).mockRejectedValue(new Error('Read error'));
+
+		const cache = new Cache();
+		await cache.load();
+		expect(cache.get('pkg1')).toBeUndefined();
+	});
+
+	it('should handle error when saving to file', async () => {
+		vi.mocked(writeFile).mockRejectedValue(new Error('Write error'));
+
+		const cache = new Cache();
+		cache.set('pkg1', mockResult);
+		await cache.save();
+		expect(writeFile).toHaveBeenCalled();
+	});
+
+	it('should handle set with invalid data', () => {
+		const cache = new Cache();
+		cache.set('key', {invalid: 'data'});
+		expect(cache.get('key')).toBeUndefined();
+	});
 });

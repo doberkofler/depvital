@@ -33,4 +33,37 @@ describe('exec', () => {
 		expect(result.stdout).toBe('partially done');
 		expect(result.stderr).toBe('not found');
 	});
+
+	it('should handle error without code', async () => {
+		vi.mocked(exec).mockImplementation(((_cmd: string, callback: any) => {
+			const err = new Error('fail');
+			callback(err, '', '');
+			return {} as any;
+		}) as any);
+
+		const result = await runCommand('fail');
+		expect(result.exitCode).toBe(1);
+	});
+
+	it('should handle empty stdout and stderr', async () => {
+		vi.mocked(exec).mockImplementation(((_cmd: string, callback: any) => {
+			callback(null, '', '');
+			return {} as any;
+		}) as any);
+
+		const result = await runCommand('empty');
+		expect(result.stdout).toBe('');
+		expect(result.stderr).toBe('');
+		expect(result.exitCode).toBe(0);
+	});
+
+	it('should handle long stdout', async () => {
+		vi.mocked(exec).mockImplementation(((_cmd: string, callback: any) => {
+			callback(null, 'a'.repeat(200), '');
+			return {} as any;
+		}) as any);
+
+		const result = await runCommand('long');
+		expect(result.stdout).toHaveLength(200);
+	});
 });

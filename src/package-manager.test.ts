@@ -71,6 +71,48 @@ describe('package-manager', () => {
 			expect(deps).toHaveLength(1);
 			expect(deps[0]!.name).toBe('pkg1');
 		});
+
+		it('should parse npm list with dev dependencies', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify({
+					dependencies: {
+						pkg1: {version: '1.0.0'},
+					},
+					devDependencies: {
+						pkg2: {version: '2.0.0'},
+					},
+				}),
+				stderr: '',
+				exitCode: 0,
+			});
+
+			const deps = await getDependencies('npm', true);
+			expect(deps).toHaveLength(2);
+			expect(deps).toContainEqual({
+				name: 'pkg1',
+				current: '1.0.0',
+				wanted: '1.0.0',
+				latest: '1.0.0',
+				isDev: false,
+			});
+			expect(deps).toContainEqual({
+				name: 'pkg2',
+				current: '2.0.0',
+				wanted: '2.0.0',
+				latest: '2.0.0',
+				isDev: true,
+			});
+		});
+
+		it('should handle invalid json in getDependencies', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: 'invalid json',
+				stderr: '',
+				exitCode: 1,
+			});
+			const deps = await getDependencies('npm', false);
+			expect(deps).toHaveLength(0);
+		});
 	});
 
 	describe('getOutdated', () => {
@@ -89,6 +131,43 @@ describe('package-manager', () => {
 			});
 
 			const outdated = await getOutdated('npm', false);
+			expect(outdated).toHaveLength(1);
+			expect(outdated[0]).toEqual({
+				name: 'pkg1',
+				current: '1.0.0',
+				wanted: '1.1.0',
+				latest: '2.0.0',
+				isDev: false,
+			});
+		});
+
+		it('should parse pnpm outdated json', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify({
+					pkg1: {
+						current: '1.0.0',
+						wanted: '1.1.0',
+						latest: '2.0.0',
+						isDev: false,
+					},
+				}),
+				stderr: '',
+				exitCode: 0,
+			});
+
+			const outdated = await getOutdated('pnpm', false);
+			expect(outdated).toHaveLength(1);
+			expect(outdated[0]!.name).toBe('pkg1');
+		});
+
+		it('should parse yarn outdated json', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify({type: 'table', data: {body: [['pkg1', '1.0.0', '1.1.0', '2.0.0', 'dependencies']]}}) + '\n' + JSON.stringify({type: 'other'}),
+				stderr: '',
+				exitCode: 0,
+			});
+
+			const outdated = await getOutdated('yarn', false);
 			expect(outdated).toHaveLength(1);
 			expect(outdated[0]).toEqual({
 				name: 'pkg1',
@@ -129,6 +208,70 @@ describe('package-manager', () => {
 				package: 'pkg1',
 				title: 'Big bad bug',
 			});
+		});
+
+		it('should handle missing title in pnpm/npm audit and use via', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify({
+					vulnerabilities: {
+						pkg1: {severity: 'critical', name: 'pkg1', via: [{title: 'Via Title'}]},
+					},
+				}),
+				stderr: '',
+				exitCode: 0,
+			});
+
+			const audit = await getAudit('pnpm');
+			expect(audit.vulnerabilities).toHaveLength(1);
+			expect(audit.vulnerabilities[0]!.title).toBe('Via Title');
+		});
+
+		it('should handle string via in pnpm/npm audit', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify({
+					vulnerabilities: {
+						pkg1: {severity: 'low', name: 'pkg1', via: ['String Via']},
+					},
+				}),
+				stderr: '',
+				exitCode: 0,
+			});
+
+			const audit = await getAudit('pnpm');
+			expect(audit.vulnerabilities).toHaveLength(1);
+			expect(audit.vulnerabilities[0]!.title).toBe('String Via');
+		});
+
+		it('should parse yarn audit json', async () => {
+			const yarnAuditOutput = [
+				JSON.stringify({type: 'auditAdvisory', data: {advisory: {severity: 'moderate', module_name: 'pkg2', title: 'Yarn vuln'}}}),
+				JSON.stringify({type: 'other', data: {}}),
+			].join('\n');
+
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: yarnAuditOutput,
+				stderr: '',
+				exitCode: 0,
+			});
+
+			const audit = await getAudit('yarn');
+			expect(audit.vulnerabilities).toHaveLength(1);
+			expect(audit.vulnerabilities[0]).toEqual({
+				severity: 'moderate',
+				package: 'pkg2',
+				title: 'Yarn vuln',
+			});
+		});
+
+		it('should handle audit error', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: 'invalid json',
+				stderr: '',
+				exitCode: 1,
+			});
+
+			const audit = await getAudit('npm');
+			expect(audit.vulnerabilities).toHaveLength(0);
 		});
 	});
 });

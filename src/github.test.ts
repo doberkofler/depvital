@@ -48,6 +48,14 @@ describe('github', () => {
 			const repo = await resolvePackageRepo('some-pkg');
 			expect(repo).toBeNull();
 		});
+
+		it('should handle resolvePackageRepo errors', async () => {
+			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(readFile).mockRejectedValue(new Error('Read error'));
+
+			const repo = await resolvePackageRepo('some-pkg');
+			expect(repo).toBeNull();
+		});
 	});
 
 	describe('fetchGitHubMetadata', () => {
@@ -73,6 +81,29 @@ describe('github', () => {
 			const metadata = await fetchGitHubMetadata('user/repo');
 			expect(metadata).toBeNull();
 		});
+
+		it('should use github token if provided in fetchGitHubMetadata', async () => {
+			vi.mocked(fetch).mockResolvedValue({
+				ok: true,
+				json: async () => ({stargazers_count: 0, open_issues_count: 0, pushed_at: ''}),
+			} as Response);
+
+			await fetchGitHubMetadata('user/repo', 'my-token');
+			expect(fetch).toHaveBeenCalledWith(
+				expect.any(String),
+				expect.objectContaining({
+					headers: expect.objectContaining({
+						Authorization: 'token my-token',
+					}),
+				}),
+			);
+		});
+
+		it('should handle fetchGitHubMetadata errors', async () => {
+			vi.mocked(fetch).mockRejectedValue(new Error('Network error'));
+			const metadata = await fetchGitHubMetadata('user/repo');
+			expect(metadata).toBeNull();
+		});
 	});
 
 	describe('fetchChangelog', () => {
@@ -87,6 +118,20 @@ describe('github', () => {
 			expect(changelog.found).toBe(true);
 			expect(changelog.url).toBe('https://github.com/user/repo/blob/main/CHANGELOG');
 			expect(changelog.latestEntry).toContain('v1.0.0');
+		});
+
+		it('should use github token if provided in fetchChangelog', async () => {
+			vi.mocked(fetch).mockResolvedValue({ok: false} as Response);
+
+			await fetchChangelog('user/repo', 'my-token');
+			expect(fetch).toHaveBeenCalledWith(
+				expect.any(String),
+				expect.objectContaining({
+					headers: expect.objectContaining({
+						Authorization: 'token my-token',
+					}),
+				}),
+			);
 		});
 
 		it('should fallback to releases API', async () => {
@@ -108,6 +153,33 @@ describe('github', () => {
 			expect(changelog.found).toBe(true);
 			expect(changelog.url).toBe('https://github.com/user/repo/releases/latest');
 			expect(changelog.latestEntry).toBe('Release notes');
+		});
+
+		it('should handle fetch errors when checking for changelog files', async () => {
+			vi.mocked(fetch).mockRejectedValue(new Error('Network error'));
+
+			const changelog = await fetchChangelog('user/repo');
+			expect(changelog.found).toBe(false);
+		});
+
+		it('should handle multiple headings in changelog and only return the first section', async () => {
+			vi.mocked(fetch).mockResolvedValueOnce({
+				ok: true,
+				text: async () => '# v1.1.0\nUpdate 1.1\n# v1.0.0\nUpdate 1.0',
+			} as Response);
+
+			const changelog = await fetchChangelog('user/repo');
+			expect(changelog.found).toBe(true);
+			expect(changelog.latestEntry).toBe('# v1.1.0\nUpdate 1.1');
+		});
+
+		it('should handle releases API failure', async () => {
+			// Mock all file checks and releases API to fail
+			vi.mocked(fetch).mockResolvedValue({ok: false, status: 404} as Response);
+
+			const changelog = await fetchChangelog('user/repo');
+			expect(changelog.found).toBe(false);
+			expect(changelog.url).toBeNull();
 		});
 	});
 });

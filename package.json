@@ -1,10 +1,7 @@
 {
-	"name": "my-cli",
+	"name": "depvital",
 	"version": "0.1.0",
 	"type": "module",
-	"create-template-project": {
-		"template": "cli"
-	},
 	"scripts": {
 		"example": "node dist/index.mjs",
 		"lint": "tsc && oxlint -c oxlint.config.ts && pnpm run prettier",
@@ -14,7 +11,8 @@
 		"ci": "pnpm run lint && pnpm run build && pnpm run test",
 		"prepare": "husky",
 		"dev": "tsdown --watch",
-		"build": "tsdown"
+		"build": "tsdown",
+		"create-changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0"
 	},
 	"dependencies": {
 		"zod": "4.3.6",

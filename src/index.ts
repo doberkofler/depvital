@@ -98,14 +98,15 @@ function printTable(results: any[]) {
 	const RED = '\x1b[31m';
 	const RESET = '\x1b[0m';
 
-	const headers = ['Package', 'Current → Latest', 'Vulnerable', 'Maintained', 'Age (days)', 'Changelog', 'Changelog Link'];
+	const headers = ['Package', 'Current', 'Latest', 'Vulnerable', 'Maintained', 'Age (days)', 'Changelog', 'Changelog Link'];
 	const columnWidths = headers.map((h) => h.length);
 
 	results.forEach((r) => {
 		columnWidths[0] = Math.max(columnWidths[0]!, r.package.length);
-		columnWidths[1] = Math.max(columnWidths[1]!, `${r.current} → ${r.latest}`.length);
-		columnWidths[4] = Math.max(columnWidths[4]!, r.maintenance.daysSinceLastCommit?.toString().length || 0);
-		columnWidths[6] = Math.max(columnWidths[6]!, r.changelog.url?.length || 0);
+		columnWidths[1] = Math.max(columnWidths[1]!, r.current.length);
+		columnWidths[2] = Math.max(columnWidths[2]!, r.latest?.length || 0);
+		columnWidths[5] = Math.max(columnWidths[5]!, r.maintenance.daysSinceLastCommit?.toString().length || 0);
+		columnWidths[7] = Math.max(columnWidths[7]!, r.changelog.url?.length || 0);
 	});
 
 	const formatRow = (row: string[]) => row.map((cell, i) => cell.padEnd(columnWidths[i] || 0)).join(' | ');
@@ -119,7 +120,8 @@ function printTable(results: any[]) {
 
 		const row = [
 			r.package,
-			`${r.current} → ${r.latest}`,
+			r.current,
+			r.latest || 'N/A',
 			isVulnerable ? `${RED}YES${RESET}` : 'no',
 			isMaintained ? 'yes' : `${RED}NO${RESET}`,
 			r.maintenance.daysSinceLastCommit?.toString() || 'N/A',

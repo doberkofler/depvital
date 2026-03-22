@@ -20,6 +20,7 @@ program
 	.option('--include-dev', 'Include devDependencies', false)
 	.option('--github-token <token>', 'GitHub token for higher rate limits')
 	.option('--no-cache', 'Disable caching', false)
+	.option('--no-progress', 'Suppress the progress bar', true)
 	.option('--package-manager <pm>', 'Force package manager (npm, pnpm, yarn)')
 	.action(async (options) => {
 		if (options.debug) {
@@ -37,7 +38,7 @@ program
 		debug('Parsed config: %O', config);
 
 		let bar: SingleBar | null = null;
-		if (!config.json && !config.debug) {
+		if (!config.json && !config.debug && config.progress) {
 			bar = new SingleBar({}, Presets.shades_classic);
 			bar.start(100, 0);
 		}

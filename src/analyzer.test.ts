@@ -65,6 +65,7 @@ describe('analyzer', () => {
 			maxAge: 180,
 			includeDev: false,
 			cache: false,
+			progress: true,
 		};
 
 		const results = await analyze(config);
@@ -116,6 +117,7 @@ describe('analyzer', () => {
 			maxAge: 180,
 			includeDev: false,
 			cache: true,
+			progress: true,
 		};
 
 		const results = await analyze(config);
@@ -148,6 +150,7 @@ describe('analyzer', () => {
 			maxAge: 180,
 			includeDev: false,
 			cache: true,
+			progress: true,
 		};
 
 		await analyze(config);
@@ -172,6 +175,7 @@ describe('analyzer', () => {
 			maxAge: 180,
 			includeDev: false,
 			cache: false,
+			progress: true,
 		};
 
 		await analyze(config, onProgress);

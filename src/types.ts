@@ -36,6 +36,7 @@ export const ConfigSchema = z.object({
 	includeDev: z.boolean().default(false),
 	githubToken: z.string().optional(),
 	cache: z.boolean().default(true),
+	progress: z.boolean().default(true),
 	packageManager: z.enum(['npm', 'yarn', 'pnpm']).optional(),
 });
 

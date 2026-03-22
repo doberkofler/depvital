@@ -44,11 +44,17 @@ program
 
 		try {
 			debug('Starting analysis...');
-			const results = await analyze(config);
+			const results = await analyze(config, (current, total) => {
+				if (bar) {
+					if (total > 0) {
+						bar.setTotal(total);
+						bar.update(current);
+					}
+				}
+			});
 			debug('Analysis complete. Results count: %d', results.length);
 
 			if (bar) {
-				bar.update(100);
 				bar.stop();
 			}
 

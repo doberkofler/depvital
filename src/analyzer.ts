@@ -6,7 +6,9 @@ import createDebug from 'debug';
 
 const debug = createDebug('depvital:analyzer');
 
-export async function analyze(configInput: Config): Promise<Result[]> {
+export type ProgressCallback = (current: number, total: number) => void;
+
+export async function analyze(configInput: Config, onProgress?: ProgressCallback): Promise<Result[]> {
 	debug('Analyzing with input config: %O', configInput);
 	const config = ConfigSchema.parse(configInput);
 
@@ -36,8 +38,18 @@ export async function analyze(configInput: Config): Promise<Result[]> {
 	}
 
 	const results: Result[] = [];
+	const total = combinedDeps.length;
+	let current = 0;
+
+	if (onProgress) {
+		onProgress(0, total);
+	}
 
 	for (const pkg of combinedDeps) {
+		current++;
+		if (onProgress) {
+			onProgress(current, total);
+		}
 		debug('Processing package: %s', pkg.name);
 		const cached = config.cache ? cache.get<Result>(pkg.name) : undefined;
 		if (cached) {

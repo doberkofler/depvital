@@ -98,7 +98,7 @@ function printTable(results: any[]) {
 	const RED = '\x1b[31m';
 	const RESET = '\x1b[0m';
 
-	const headers = ['Package', 'Current', 'Latest', 'Vulnerable', 'Maintained', 'Age (days)', 'Changelog', 'Changelog Link'];
+	const headers = ['Package', 'Current', 'Latest', 'Vulnerable', 'Maintained', 'Age (days)', 'GitHub', 'Changelog'];
 	const columnWidths = headers.map((h) => h.length);
 
 	results.forEach((r) => {
@@ -106,6 +106,7 @@ function printTable(results: any[]) {
 		columnWidths[1] = Math.max(columnWidths[1]!, r.current.length);
 		columnWidths[2] = Math.max(columnWidths[2]!, r.latest?.length || 0);
 		columnWidths[5] = Math.max(columnWidths[5]!, r.maintenance.daysSinceLastCommit?.toString().length || 0);
+		columnWidths[6] = Math.max(columnWidths[6]!, r.githubUrl?.length || 0);
 		columnWidths[7] = Math.max(columnWidths[7]!, r.changelog.url?.length || 0);
 	});
 
@@ -125,7 +126,7 @@ function printTable(results: any[]) {
 			isVulnerable ? `${RED}YES${RESET}` : 'no',
 			isMaintained ? 'yes' : `${RED}NO${RESET}`,
 			r.maintenance.daysSinceLastCommit?.toString() || 'N/A',
-			r.changelog.found ? 'yes' : 'no',
+			r.githubUrl || '',
 			r.changelog.url || '',
 		];
 

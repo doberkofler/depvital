@@ -18,6 +18,7 @@ export const ResultSchema = z.object({
 		isMaintained: z.boolean().nullable(),
 		healthScore: z.number().nullable(),
 	}),
+	githubUrl: z.string().nullable().optional(),
 	changelog: z.object({
 		found: z.boolean(),
 		url: z.string().nullable().optional(),

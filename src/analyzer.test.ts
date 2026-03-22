@@ -75,11 +75,13 @@ describe('analyzer', () => {
 		const res1 = results.find((r) => r.package === 'pkg1');
 		expect(res1?.outdated).toBe(true);
 		expect(res1?.latest).toBe('2.0.0');
+		expect(res1?.githubUrl).toBe('https://github.com/user/repo');
 
 		// pkg2 should have vulnerability
 		const res2 = results.find((r) => r.package === 'pkg2');
 		expect(res2?.vulnerabilities).toHaveLength(1);
 		expect(res2?.outdated).toBe(false);
+		expect(res2?.githubUrl).toBe('https://github.com/user/repo');
 	});
 
 	it('should use cache if enabled', async () => {

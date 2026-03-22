@@ -104,6 +104,7 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 			vulnerabilities: audit.vulnerabilities.filter((v) => v.package === pkg.name).map((v) => ({severity: v.severity, title: v.title})),
 			deprecated: false, // In practice, deprecated packages are often found in audit or via registry metadata
 			maintenance,
+			githubUrl: repo ? `https://github.com/${repo}` : null,
 			changelog,
 		});
 

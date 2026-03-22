@@ -1,7 +1,16 @@
-import {existsSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {runCommand} from './utils/exec.js';
-import {NpmOutdatedSchema, YarnOutdatedSchema, NpmAuditSchema, YarnAuditSchema, PackageListSchema, type PackageMetadata, type AuditResult} from './types.js';
+import {
+	NpmOutdatedSchema,
+	YarnOutdatedSchema,
+	NpmAuditSchema,
+	YarnAuditSchema,
+	PackageListSchema,
+	PackageJsonSchema,
+	type PackageMetadata,
+	type AuditResult,
+} from './types.js';
 import createDebug from 'debug';
 
 const debug = createDebug('depvital:pm');
@@ -21,6 +30,32 @@ export async function detectPackageManager(cwd: string = process.cwd()): Promise
 }
 
 export async function getDependencies(pm: 'npm' | 'yarn' | 'pnpm', includeDev: boolean): Promise<PackageMetadata[]> {
+	const cwd = process.cwd();
+	const packageJsonPath = join(cwd, 'package.json');
+	const explicitDeps = new Set<string>();
+
+	if (existsSync(packageJsonPath)) {
+		try {
+			const packageJsonRaw = readFileSync(packageJsonPath, 'utf8');
+			const packageJson = PackageJsonSchema.parse(JSON.parse(packageJsonRaw));
+
+			if (packageJson.dependencies) {
+				for (const name of Object.keys(packageJson.dependencies)) {
+					explicitDeps.add(name);
+				}
+			}
+
+			if (includeDev && packageJson.devDependencies) {
+				for (const name of Object.keys(packageJson.devDependencies)) {
+					explicitDeps.add(name);
+				}
+			}
+			debug('Found %d explicit dependencies in package.json', explicitDeps.size);
+		} catch (error) {
+			debug('Error reading package.json: %O', error);
+		}
+	}
+
 	let command = '';
 	if (pm === 'npm') {
 		command = `npm list --json --depth=0 ${includeDev ? '' : '--prod'}`;
@@ -51,6 +86,12 @@ export async function getDependencies(pm: 'npm' | 'yarn' | 'pnpm', includeDev: b
 		const devDeps = includeDev ? data.devDependencies || {} : {};
 
 		for (const [name, info] of Object.entries(deps)) {
+			// Only include packages explicitly declared in package.json
+			if (explicitDeps.size > 0 && !explicitDeps.has(name)) {
+				debug('Skipping extraneous dependency: %s', name);
+				continue;
+			}
+
 			results.push({
 				name,
 				current: info.version || 'unknown',
@@ -61,6 +102,12 @@ export async function getDependencies(pm: 'npm' | 'yarn' | 'pnpm', includeDev: b
 		}
 
 		for (const [name, info] of Object.entries(devDeps)) {
+			// Only include packages explicitly declared in package.json
+			if (explicitDeps.size > 0 && !explicitDeps.has(name)) {
+				debug('Skipping extraneous devDependency: %s', name);
+				continue;
+			}
+
 			results.push({
 				name,
 				current: info.version || 'unknown',

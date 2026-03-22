@@ -1,6 +1,6 @@
 import {describe, it, expect, vi, beforeEach} from 'vitest';
 import {detectPackageManager, getDependencies, getOutdated, getAudit} from './package-manager.js';
-import {existsSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import * as exec from './utils/exec.js';
 
 vi.mock('node:fs');
@@ -33,6 +33,8 @@ describe('package-manager', () => {
 
 	describe('getDependencies', () => {
 		it('should parse npm list json', async () => {
+			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(readFileSync).mockReturnValue(JSON.stringify({dependencies: {pkg1: '1.0.0'}}));
 			vi.mocked(exec.runCommand).mockResolvedValue({
 				stdout: JSON.stringify({
 					dependencies: {
@@ -54,7 +56,29 @@ describe('package-manager', () => {
 			});
 		});
 
+		it('should filter out extraneous dependencies not in package.json', async () => {
+			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(readFileSync).mockReturnValue(JSON.stringify({dependencies: {pkg1: '1.0.0'}}));
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify({
+					dependencies: {
+						pkg1: {version: '1.0.0'},
+						extraneousPkg: {version: '2.0.0'},
+					},
+				}),
+				stderr: '',
+				exitCode: 0,
+			});
+
+			const deps = await getDependencies('npm', false);
+			expect(deps).toHaveLength(1);
+			expect(deps[0]).toMatchObject({name: 'pkg1', current: '1.0.0'});
+			expect(deps.find((d) => d.name === 'extraneousPkg')).toBeUndefined();
+		});
+
 		it('should parse pnpm list json (array format)', async () => {
+			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(readFileSync).mockReturnValue(JSON.stringify({dependencies: {pkg1: '1.0.0'}}));
 			vi.mocked(exec.runCommand).mockResolvedValue({
 				stdout: JSON.stringify([
 					{
@@ -73,6 +97,13 @@ describe('package-manager', () => {
 		});
 
 		it('should parse npm list with dev dependencies', async () => {
+			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(readFileSync).mockReturnValue(
+				JSON.stringify({
+					dependencies: {pkg1: '1.0.0'},
+					devDependencies: {pkg2: '2.0.0'},
+				}),
+			);
 			vi.mocked(exec.runCommand).mockResolvedValue({
 				stdout: JSON.stringify({
 					dependencies: {

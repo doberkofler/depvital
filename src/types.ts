@@ -67,6 +67,8 @@ export type AuditResult = z.infer<typeof AuditResultSchema>;
 
 // Package.json repository boundary
 export const PackageJsonSchema = z.object({
+	dependencies: z.record(z.string(), z.string()).optional(),
+	devDependencies: z.record(z.string(), z.string()).optional(),
 	repository: z
 		.union([
 			z.string(),

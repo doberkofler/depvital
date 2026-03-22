@@ -2,6 +2,9 @@
 	"name": "depvital",
 	"version": "0.1.0",
 	"type": "module",
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"bin": "./dist/index.mjs",
 	"scripts": {
 		"example": "node dist/index.mjs",
 		"lint": "tsc && oxlint -c oxlint.config.ts && pnpm run prettier",

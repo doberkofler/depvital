@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import {Command} from 'commander';
 import {analyze} from './analyzer.js';
 import {ConfigSchema} from './types.js';

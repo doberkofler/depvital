@@ -93,4 +93,11 @@ describe('Cache', () => {
 		cache.set('key', {invalid: 'data'});
 		expect(cache.get('key')).toBeUndefined();
 	});
+
+	it('should handle missing cache file', async () => {
+		vi.mocked(existsSync).mockReturnValue(false);
+		const cache = new Cache();
+		await cache.load();
+		expect(cache.get('pkg1')).toBeUndefined();
+	});
 });

@@ -110,18 +110,20 @@ export const YarnOutdatedSchema = z.object({
 });
 
 // Package Manager List boundaries
-export const PackageListSchema = z.union([
-	z.object({
-		dependencies: z.record(z.string(), z.object({version: z.string().optional()})).optional(),
-		devDependencies: z.record(z.string(), z.object({version: z.string().optional()})).optional(),
-	}),
-	z.array(
+export const PackageListSchema = z
+	.union([
 		z.object({
 			dependencies: z.record(z.string(), z.object({version: z.string().optional()})).optional(),
 			devDependencies: z.record(z.string(), z.object({version: z.string().optional()})).optional(),
 		}),
-	),
-]);
+		z.array(
+			z.object({
+				dependencies: z.record(z.string(), z.object({version: z.string().optional()})).optional(),
+				devDependencies: z.record(z.string(), z.object({version: z.string().optional()})).optional(),
+			}),
+		),
+	])
+	.nullable();
 
 // Audit boundaries
 export const NpmAuditValueSchema = z.object({
@@ -142,8 +144,8 @@ export const NpmAuditValueSchema = z.object({
 });
 
 export const NpmAuditSchema = z.object({
-	advisories: z.record(z.string(), NpmAuditValueSchema).optional(),
-	vulnerabilities: z.record(z.string(), NpmAuditValueSchema).optional(),
+	advisories: z.record(z.string(), NpmAuditValueSchema.nullable()).optional(),
+	vulnerabilities: z.record(z.string(), NpmAuditValueSchema.nullable()).optional(),
 });
 
 export const YarnAuditSchema = z.object({

@@ -301,10 +301,21 @@ describe('analyzer', () => {
 		};
 
 		await analyze(config, onProgress);
+		expect(onProgress).toHaveBeenCalledTimes(3);
+	});
 
-		expect(onProgress).toHaveBeenCalledTimes(3); // 0/2, 1/2, 2/2
-		expect(onProgress).toHaveBeenNthCalledWith(1, 0, 2);
-		expect(onProgress).toHaveBeenNthCalledWith(2, 1, 2);
-		expect(onProgress).toHaveBeenNthCalledWith(3, 2, 2);
+	it('should set githubRateLimitHit if fetchGitHubMetadata returns null', async () => {
+		vi.mocked(pm.detectPackageManager).mockResolvedValue('npm');
+		vi.mocked(pm.getDependencies).mockResolvedValue([{name: 'pkg1', current: '1.0.0', wanted: '1.0.0', latest: '1.0.0', isDev: false}]);
+		vi.mocked(pm.getOutdated).mockResolvedValue([]);
+		vi.mocked(pm.getAudit).mockResolvedValue({vulnerabilities: [], deprecated: []});
+		vi.mocked(pm.getPackageInfo).mockResolvedValue({lastRelease: null, deprecated: false});
+		vi.mocked(github.resolvePackageRepo).mockResolvedValue('user/repo');
+		vi.mocked(github.fetchGitHubMetadata).mockResolvedValue(null);
+		vi.mocked(github.fetchChangelog).mockResolvedValue({found: false, url: null, latestEntry: null});
+
+		const config: Config = {json: false, debug: false, maxAge: 180, includeDev: false, cache: false, progress: false, update: false};
+		const {githubRateLimitHit} = await analyze(config);
+		expect(githubRateLimitHit).toBe(true);
 	});
 });

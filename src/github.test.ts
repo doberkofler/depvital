@@ -1,5 +1,5 @@
 import {describe, it, expect, vi, beforeEach} from 'vitest';
-import {fetchGitHubMetadata, fetchChangelog, resolvePackageRepo} from './github.js';
+import {fetchGitHubMetadata, fetchChangelog, resolvePackageRepo, normalizeRepoUrl} from './github.js';
 import {existsSync} from 'node:fs';
 import {readFile} from 'node:fs/promises';
 
@@ -10,6 +10,29 @@ describe('github', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 		vi.stubGlobal('fetch', vi.fn());
+	});
+
+	describe('normalizeRepoUrl', () => {
+		it('should return null for non-string input', () => {
+			expect(normalizeRepoUrl(null as any)).toBeNull();
+		});
+
+		it('should handle github.com URLs', () => {
+			expect(normalizeRepoUrl('https://github.com/user/repo')).toBe('user/repo');
+			expect(normalizeRepoUrl('https://github.com/user/repo.git')).toBe('user/repo');
+		});
+
+		it('should handle github: shorthand', () => {
+			expect(normalizeRepoUrl('github:user/repo')).toBe('user/repo');
+		});
+
+		it('should handle user/repo shorthand', () => {
+			expect(normalizeRepoUrl('user/repo')).toBe('user/repo');
+		});
+
+		it('should return null for invalid URLs', () => {
+			expect(normalizeRepoUrl('not-a-repo')).toBeNull();
+		});
 	});
 
 	describe('resolvePackageRepo', () => {
@@ -45,6 +68,36 @@ describe('github', () => {
 				}),
 			);
 
+			const repo = await resolvePackageRepo('some-pkg');
+			expect(repo).toBeNull();
+		});
+
+		it('should resolve repo from repoInput string', async () => {
+			const repo = await resolvePackageRepo('some-pkg', process.cwd(), 'user/repo');
+			expect(repo).toBe('user/repo');
+		});
+
+		it('should resolve repo from repoInput object', async () => {
+			const repo = await resolvePackageRepo('some-pkg', process.cwd(), {url: 'https://github.com/user/repo'});
+			expect(repo).toBe('user/repo');
+		});
+
+		it('should return null if package.json not found', async () => {
+			vi.mocked(existsSync).mockReturnValue(false);
+			const repo = await resolvePackageRepo('some-pkg');
+			expect(repo).toBeNull();
+		});
+
+		it('should return null if repository field is missing', async () => {
+			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(readFile).mockResolvedValue(JSON.stringify({}));
+			const repo = await resolvePackageRepo('some-pkg');
+			expect(repo).toBeNull();
+		});
+
+		it('should return null if repository object has no url', async () => {
+			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(readFile).mockResolvedValue(JSON.stringify({repository: {}}));
 			const repo = await resolvePackageRepo('some-pkg');
 			expect(repo).toBeNull();
 		});
@@ -157,6 +210,16 @@ describe('github', () => {
 
 		it('should handle fetch errors when checking for changelog files', async () => {
 			vi.mocked(fetch).mockRejectedValue(new Error('Network error'));
+
+			const changelog = await fetchChangelog('user/repo');
+			expect(changelog.found).toBe(false);
+		});
+
+		it('should handle releases API throwing error', async () => {
+			// All file checks fail
+			vi.mocked(fetch).mockResolvedValueOnce({ok: false} as Response);
+			// Then release API fails
+			vi.mocked(fetch).mockRejectedValue(new Error('API error'));
 
 			const changelog = await fetchChangelog('user/repo');
 			expect(changelog.found).toBe(false);

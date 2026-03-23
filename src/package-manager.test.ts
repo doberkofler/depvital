@@ -1,5 +1,5 @@
 import {describe, it, expect, vi, beforeEach} from 'vitest';
-import {detectPackageManager, getDependencies, getOutdated, getAudit, getPackageInfo} from './package-manager.js';
+import {detectPackageManager, getDependencies, getOutdated, getAudit, getPackageInfo, updatePackages} from './package-manager.js';
 import {existsSync, readFileSync} from 'node:fs';
 import * as exec from './utils/exec.js';
 
@@ -76,6 +76,25 @@ describe('package-manager', () => {
 			expect(deps.find((d) => d.name === 'extraneousPkg')).toBeUndefined();
 		});
 
+		it('should filter out extraneous devDependencies not in package.json', async () => {
+			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(readFileSync).mockReturnValue(JSON.stringify({devDependencies: {pkg1: '1.0.0'}}));
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify({
+					devDependencies: {
+						pkg1: {version: '1.0.0'},
+						extraneousPkg: {version: '2.0.0'},
+					},
+				}),
+				stderr: '',
+				exitCode: 0,
+			});
+
+			const deps = await getDependencies('npm', true);
+			expect(deps).toHaveLength(1);
+			expect(deps[0]).toMatchObject({name: 'pkg1', current: '1.0.0'});
+		});
+
 		it('should parse pnpm list json (array format)', async () => {
 			vi.mocked(existsSync).mockReturnValue(true);
 			vi.mocked(readFileSync).mockReturnValue(JSON.stringify({dependencies: {pkg1: '1.0.0'}}));
@@ -140,6 +159,80 @@ describe('package-manager', () => {
 				stdout: 'invalid json',
 				stderr: '',
 				exitCode: 1,
+			});
+			const deps = await getDependencies('npm', false);
+			expect(deps).toHaveLength(0);
+		});
+
+		it('should parse pnpm list json (object format)', async () => {
+			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(readFileSync).mockReturnValue(JSON.stringify({dependencies: {pkg1: '1.0.0'}}));
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify({
+					dependencies: {
+						pkg1: {version: '1.0.0'},
+					},
+				}),
+				stderr: '',
+				exitCode: 0,
+			});
+
+			const deps = await getDependencies('pnpm', false);
+			expect(deps).toHaveLength(1);
+			expect(deps[0]!.name).toBe('pkg1');
+		});
+
+		it('should parse yarn list json', async () => {
+			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(readFileSync).mockReturnValue(JSON.stringify({dependencies: {pkg1: '1.0.0'}}));
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify({
+					dependencies: {
+						pkg1: {version: '1.0.0'},
+					},
+				}),
+				stderr: '',
+				exitCode: 0,
+			});
+
+			const deps = await getDependencies('yarn', false);
+			expect(deps).toHaveLength(1);
+			expect(deps[0]!.name).toBe('pkg1');
+		});
+
+		it('should handle error reading package.json', async () => {
+			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(readFileSync).mockImplementation(() => {
+				throw new Error('Read error');
+			});
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify({
+					dependencies: {
+						pkg1: {version: '1.0.0'},
+					},
+				}),
+				stderr: '',
+				exitCode: 0,
+			});
+			const deps = await getDependencies('npm', false);
+			expect(deps).toHaveLength(1);
+		});
+
+		it('should return empty if data is missing in list output', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify(null),
+				stderr: '',
+				exitCode: 0,
+			});
+			const deps = await getDependencies('npm', false);
+			expect(deps).toHaveLength(0);
+		});
+
+		it('should handle empty stdout in getDependencies', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: '',
+				stderr: '',
+				exitCode: 0,
 			});
 			const deps = await getDependencies('npm', false);
 			expect(deps).toHaveLength(0);
@@ -209,6 +302,16 @@ describe('package-manager', () => {
 			});
 		});
 
+		it('should handle yarn outdated with empty line', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: '\n' + JSON.stringify({type: 'table', data: {body: [['pkg1', '1.0.0', '1.1.0', '2.0.0', 'dependencies']]}}),
+				stderr: '',
+				exitCode: 0,
+			});
+			const outdated = await getOutdated('yarn', false);
+			expect(outdated).toHaveLength(1);
+		});
+
 		it('should handle empty output', async () => {
 			vi.mocked(exec.runCommand).mockResolvedValue({
 				stdout: '',
@@ -218,9 +321,53 @@ describe('package-manager', () => {
 			const outdated = await getOutdated('npm', false);
 			expect(outdated).toHaveLength(0);
 		});
+
+		it('should handle yarn outdated with no table', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify({type: 'other'}),
+				stderr: '',
+				exitCode: 0,
+			});
+			const outdated = await getOutdated('yarn', false);
+			expect(outdated).toHaveLength(0);
+		});
+
+		it('should handle error in getOutdated', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: 'invalid json',
+				stderr: '',
+				exitCode: 1,
+			});
+			const outdated = await getOutdated('npm', false);
+			expect(outdated).toHaveLength(0);
+		});
 	});
 
 	describe('getAudit', () => {
+		it('should handle no output', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: '',
+				stderr: '',
+				exitCode: 0,
+			});
+			const audit = await getAudit('npm');
+			expect(audit.vulnerabilities).toHaveLength(0);
+		});
+
+		it('should skip null advisories in pnpm/npm audit', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify({
+					vulnerabilities: {
+						pkg1: null,
+					},
+				}),
+				stderr: '',
+				exitCode: 0,
+			});
+
+			const audit = await getAudit('npm');
+			expect(audit.vulnerabilities).toHaveLength(0);
+		});
 		it('should parse npm audit json', async () => {
 			vi.mocked(exec.runCommand).mockResolvedValue({
 				stdout: JSON.stringify({
@@ -294,6 +441,16 @@ describe('package-manager', () => {
 			});
 		});
 
+		it('should handle yarn audit with empty line', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: '\n' + JSON.stringify({type: 'auditAdvisory', data: {advisory: {severity: 'low', module_name: 'pkg1', title: 'Vuln'}}}),
+				stderr: '',
+				exitCode: 0,
+			});
+			const audit = await getAudit('yarn');
+			expect(audit.vulnerabilities).toHaveLength(1);
+		});
+
 		it('should handle audit error', async () => {
 			vi.mocked(exec.runCommand).mockResolvedValue({
 				stdout: 'invalid json',
@@ -354,6 +511,77 @@ describe('package-manager', () => {
 				lastRelease: null,
 				deprecated: false,
 			});
+		});
+
+		it('should handle package info for pnpm', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify('2023-01-01T00:00:00.000Z'),
+				stderr: '',
+				exitCode: 0,
+			});
+			const info = await getPackageInfo('pnpm', 'pkg');
+			expect(info.lastRelease).toBe('2023-01-01T00:00:00.000Z');
+		});
+
+		it('should handle package info for yarn', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify('2023-01-01T00:00:00.000Z'),
+				stderr: '',
+				exitCode: 0,
+			});
+			const info = await getPackageInfo('yarn', 'pkg');
+			expect(info.lastRelease).toBe('2023-01-01T00:00:00.000Z');
+		});
+
+		it('should handle error in getPackageInfo', async () => {
+			vi.mocked(exec.runCommand).mockRejectedValue(new Error('Network error'));
+			const info = await getPackageInfo('npm', 'pkg');
+			expect(info).toEqual({lastRelease: null, deprecated: false});
+		});
+	});
+
+	describe('updatePackages', () => {
+		it('should do nothing if package list is empty', async () => {
+			const spy = vi.spyOn(exec, 'runCommand');
+			await updatePackages('npm', []);
+			expect(spy).not.toHaveBeenCalled();
+		});
+
+		it('should update packages with npm', async () => {
+			const spy = vi.spyOn(exec, 'runCommand').mockResolvedValue({stdout: '', stderr: '', exitCode: 0});
+			await updatePackages('npm', [
+				{name: 'pkg1', version: '1.0.0', isDev: false},
+				{name: 'pkg2', version: '2.0.0', isDev: true},
+			]);
+			expect(spy).toHaveBeenCalledWith('npm install pkg1@1.0.0 --save');
+			expect(spy).toHaveBeenCalledWith('npm install pkg2@2.0.0 --save-dev');
+		});
+
+		it('should update packages with pnpm', async () => {
+			const spy = vi.spyOn(exec, 'runCommand').mockResolvedValue({stdout: '', stderr: '', exitCode: 0});
+			await updatePackages('pnpm', [
+				{name: 'pkg1', version: '1.0.0', isDev: false},
+				{name: 'pkg2', version: '2.0.0', isDev: true},
+			]);
+			expect(spy).toHaveBeenCalledWith('pnpm add pkg1@1.0.0 ');
+			expect(spy).toHaveBeenCalledWith('pnpm add pkg2@2.0.0 -D');
+		});
+
+		it('should update packages with yarn', async () => {
+			const spy = vi.spyOn(exec, 'runCommand').mockResolvedValue({stdout: '', stderr: '', exitCode: 0});
+			await updatePackages('yarn', [
+				{name: 'pkg1', version: '1.0.0', isDev: false},
+				{name: 'pkg2', version: '2.0.0', isDev: true},
+			]);
+			expect(spy).toHaveBeenCalledWith('yarn add pkg1@1.0.0 ');
+			expect(spy).toHaveBeenCalledWith('yarn add pkg2@2.0.0 --dev');
+		});
+
+		it('should update only dev packages', async () => {
+			const spy = vi.spyOn(exec, 'runCommand').mockResolvedValue({stdout: '', stderr: '', exitCode: 0});
+			await updatePackages('npm', [{name: 'pkg1', version: '1.0.0', isDev: true}]);
+			expect(spy).toHaveBeenCalledOnce();
+			expect(spy).toHaveBeenCalledWith('npm install pkg1@1.0.0 --save-dev');
 		});
 	});
 });

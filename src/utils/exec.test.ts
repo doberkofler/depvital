@@ -66,4 +66,14 @@ describe('exec', () => {
 		const result = await runCommand('long');
 		expect(result.stdout).toHaveLength(200);
 	});
+
+	it('should handle long stderr', async () => {
+		vi.mocked(exec).mockImplementation(((_cmd: string, callback: any) => {
+			callback(null, '', 'e'.repeat(200));
+			return {} as any;
+		}) as any);
+
+		const result = await runCommand('long-err');
+		expect(result.stderr).toHaveLength(200);
+	});
 });

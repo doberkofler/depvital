@@ -92,6 +92,7 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 				maintenance,
 				latest: pkg.latest,
 				outdated: pkg.current !== pkg.latest,
+				isDev: pkg.isDev,
 				vulnerabilities: audit.vulnerabilities.filter((v) => v.package === pkg.name).map((v) => ({severity: v.severity, title: v.title})),
 			};
 			results.push(result);
@@ -176,6 +177,7 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 			current: pkg.current,
 			latest: pkg.latest,
 			outdated: pkg.current !== pkg.latest,
+			isDev: pkg.isDev,
 			vulnerabilities: audit.vulnerabilities.filter((v) => v.package === pkg.name).map((v) => ({severity: v.severity, title: v.title})),
 			deprecated: pkgInfo.deprecated,
 			maintenance,

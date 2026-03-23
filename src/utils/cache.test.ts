@@ -12,6 +12,7 @@ const mockResult: Result = {
 	current: '1.0.0',
 	latest: '1.1.0',
 	outdated: true,
+	isDev: false,
 	vulnerabilities: [],
 	deprecated: false,
 	maintenance: {

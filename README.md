@@ -14,6 +14,7 @@ A production-ready CLI tool for analyzing project dependencies' health, security
 - **Multi-Package Manager Support**: Works with `npm`, `yarn`, and `pnpm`.
 - **Zod-Powered Validation**: Strict validation of all external data boundaries.
 - **Maintenance Scoring**: Computes a health score based on commit recency and community metrics.
+- **Interactive Updates**: Select and update outdated dependencies directly via the CLI.
 - **Fail Thresholds**: Configurable failure based on vulnerability severity.
 - **Smart Caching**: Local caching to avoid API rate limits.
 - **Extensive Debugging**: Full instrumentation with the `--debug` flag.
@@ -41,6 +42,9 @@ node dist/index.mjs --debug
 
 # Suppress progress bar
 node dist/index.mjs --no-progress
+
+# Interactive update
+node dist/index.mjs --update
 ```
 
 ## Development Workflow

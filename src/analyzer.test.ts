@@ -70,6 +70,7 @@ describe('analyzer', () => {
 			includeDev: false,
 			cache: false,
 			progress: true,
+			update: false,
 		};
 
 		const {results} = await analyze(config);
@@ -115,6 +116,7 @@ describe('analyzer', () => {
 			current: '1.0.0',
 			latest: '1.0.0',
 			outdated: false,
+			isDev: false,
 			vulnerabilities: [],
 			maintenance: {
 				isMaintained: true,
@@ -133,6 +135,7 @@ describe('analyzer', () => {
 			includeDev: false,
 			cache: true,
 			progress: true,
+			update: false,
 		};
 
 		const {results} = await analyze(config);
@@ -166,6 +169,7 @@ describe('analyzer', () => {
 			current: '1.0.0', // Old version in cache
 			latest: '1.0.0',
 			outdated: false,
+			isDev: false,
 			vulnerabilities: [],
 			maintenance: {isMaintained: true, healthScore: 0.9, lastRelease: null, daysSinceLastRelease: null},
 			changelog: {found: false, url: null, latestEntry: null},
@@ -179,6 +183,7 @@ describe('analyzer', () => {
 			includeDev: false,
 			cache: true,
 			progress: true,
+			update: false,
 		};
 
 		const {results, stats} = await analyze(config);
@@ -227,6 +232,7 @@ describe('analyzer', () => {
 			includeDev: false,
 			cache: true,
 			progress: true,
+			update: false,
 		};
 
 		const {results, stats} = await analyze(config);
@@ -264,6 +270,7 @@ describe('analyzer', () => {
 			includeDev: false,
 			cache: true,
 			progress: true,
+			update: false,
 		};
 
 		await analyze(config);
@@ -290,6 +297,7 @@ describe('analyzer', () => {
 			includeDev: false,
 			cache: false,
 			progress: true,
+			update: false,
 		};
 
 		await analyze(config, onProgress);

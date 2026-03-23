@@ -301,3 +301,36 @@ export async function getPackageInfo(pm: 'npm' | 'yarn' | 'pnpm', packageName: s
 		return {lastRelease: null, deprecated: false};
 	}
 }
+
+export async function updatePackages(pm: 'npm' | 'yarn' | 'pnpm', packages: {name: string; version: string; isDev: boolean}[]) {
+	if (packages.length === 0) {
+		return;
+	}
+
+	const deps = packages.filter((p) => !p.isDev);
+	const devDeps = packages.filter((p) => p.isDev);
+
+	const execute = async (pkgs: typeof packages, isDev: boolean) => {
+		if (pkgs.length === 0) {
+			return;
+		}
+
+		let command = '';
+		const pkgList = pkgs.map((p) => `${p.name}@${p.version}`).join(' ');
+
+		if (pm === 'npm') {
+			command = `npm install ${pkgList} ${isDev ? '--save-dev' : '--save'}`;
+		} else if (pm === 'pnpm') {
+			command = `pnpm add ${pkgList} ${isDev ? '-D' : ''}`;
+		} else if (pm === 'yarn') {
+			command = `yarn add ${pkgList} ${isDev ? '--dev' : ''}`;
+		}
+
+		debug('Executing update command: %s', command);
+		console.log(`\nExecuting: ${command}`);
+		await runCommand(command);
+	};
+
+	await execute(deps, false);
+	await execute(devDeps, true);
+}

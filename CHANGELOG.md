@@ -1,3 +1,10 @@
+# [0.4.0](https://github.com/doberkofler/depvital/compare/v0.3.0...v0.4.0) (2026-03-23)
+
+
+### Features
+
+* add --update argument to interactively update outdated dependencies
+
 # [0.3.0](https://github.com/doberkofler/depvital/compare/v0.2.1...v0.3.0) (2026-03-22)
 
 

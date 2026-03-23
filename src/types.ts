@@ -5,6 +5,7 @@ export const ResultSchema = z.object({
 	current: z.string(),
 	latest: z.string().nullable(),
 	outdated: z.boolean(),
+	isDev: z.boolean(),
 	vulnerabilities: z.array(
 		z.object({
 			severity: z.enum(['low', 'moderate', 'high', 'critical']),
@@ -37,6 +38,7 @@ export const ConfigSchema = z.object({
 	githubToken: z.string().optional(),
 	cache: z.boolean().default(true),
 	progress: z.boolean().default(true),
+	update: z.boolean().default(false),
 	packageManager: z.enum(['npm', 'yarn', 'pnpm']).optional(),
 });
 

@@ -34,6 +34,7 @@ We follow the **Conventional Commits** specification. This is **enforced** by `c
 ## Dependencies
 
 - **zod**: TypeScript-first schema validation with static type inference.
+- **@inquirer/prompts**: Interactive command line prompts.
 - **eslint-plugin-regexp**: ESLint plugin for finding regexp mistakes and style guide violations.
 - **debug**: A tiny JavaScript debugging utility modelled after Node.js core debugging technique.
 - **@commitlint/cli**: Lint commit messages to ensure they follow conventional commits.

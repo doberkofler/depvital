@@ -5,6 +5,8 @@ import {analyze, type AnalysisResult} from './analyzer.js';
 import {ConfigSchema} from './types.js';
 import {SingleBar, Presets} from 'cli-progress';
 import createDebug from 'debug';
+import {checkbox} from '@inquirer/prompts';
+import {detectPackageManager, updatePackages} from './package-manager.js';
 
 const debug = createDebug('depvital:main');
 const program = new Command();
@@ -21,6 +23,7 @@ program
 	.option('--github-token <token>', 'GitHub token for higher rate limits')
 	.option('--no-cache', 'Disable caching')
 	.option('--no-progress', 'Suppress the progress bar')
+	.option('--update', 'Select outdated packages to update', false)
 	.option('--package-manager <pm>', 'Force package manager (npm, pnpm, yarn)')
 	.action(async (options) => {
 		if (options.debug) {
@@ -65,6 +68,34 @@ program
 			} else {
 				debug('Printing table results');
 				printTable(results, githubRateLimitHit, stats);
+			}
+
+			if (config.update && !config.json) {
+				const outdated = results.filter((r) => r.outdated && r.latest);
+				if (outdated.length > 0) {
+					const selected = await checkbox({
+						message: 'Select packages to update:',
+						choices: outdated.map((r) => ({
+							name: `${r.package} (${r.current} -> ${r.latest})`,
+							value: r,
+						})),
+					});
+
+					if (selected.length > 0) {
+						const pm = config.packageManager || (await detectPackageManager());
+						await updatePackages(
+							pm,
+							selected.map((r) => ({
+								name: r.package,
+								version: r.latest!,
+								isDev: r.isDev,
+							})),
+						);
+						console.log('\n✅ Selected packages updated successfully.');
+					} else {
+						console.log('\nNo packages selected for update.');
+					}
+				}
 			}
 
 			// Check for fail-on threshold

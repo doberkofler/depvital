@@ -117,6 +117,15 @@ function formatHumanAge(lastRelease: string | null): string {
 	return `${years}y`;
 }
 
+function isMajorUpdate(current: string, latest: string | null): boolean {
+	if (!latest || current === latest) {
+		return false;
+	}
+	const currentMajor = current.split('.')[0];
+	const latestMajor = latest.split('.')[0];
+	return currentMajor !== latestMajor;
+}
+
 function printTable(results: any[], githubRateLimitHit: boolean, stats: AnalysisResult['stats']) {
 	if (results.length === 0) {
 		console.log('No outdated dependencies found.');
@@ -152,10 +161,19 @@ function printTable(results: any[], githubRateLimitHit: boolean, stats: Analysis
 		const isMaintained = r.maintenance.isMaintained === true;
 		const ageStr = formatHumanAge(r.maintenance.lastRelease);
 
+		let latestStr = r.latest || 'N/A';
+		if (r.outdated) {
+			if (isMajorUpdate(r.current, r.latest)) {
+				latestStr = `${RED}${latestStr}${RESET}`;
+			} else {
+				latestStr = `${YELLOW}${latestStr}${RESET}`;
+			}
+		}
+
 		const row = [
 			r.package,
 			r.current,
-			r.latest || 'N/A',
+			latestStr,
 			isVulnerable ? `${RED}YES${RESET}` : 'no',
 			!isMaintained && r.maintenance.lastRelease !== null ? `${RED}${ageStr}${RESET}` : ageStr,
 			r.githubUrl || '',

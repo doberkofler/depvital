@@ -1,6 +1,6 @@
 {
 	"name": "depvital",
-	"version": "0.3.0",
+	"version": "0.4.0",
 	"description": "A production-ready CLI tool for analyzing project dependencies' health, security, and maintenance.",
 	"type": "module",
 	"bin": "./dist/index.js",

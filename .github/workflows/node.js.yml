@@ -17,7 +17,17 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
+<<<<<<< /Users/doberkofler/MyShare/doberkofler/depvital/.github/workflows/node.js.yml
           node-version: '22.x'
           cache: 'pnpm'
       - run: 'pnpm install --frozen-lockfile'
       - run: 'pnpm run ci'
+=======
+          node-version: "22.x"
+          cache: "pnpm"
+      - run: "pnpm install --frozen-lockfile"
+      
+      - run: "pnpm run ci"
+      - name: Coveralls GitHub Action
+        uses: coverallsapp/github-action@v2
+>>>>>>> /Users/doberkofler/MyShare/doberkofler/depvital/.github/workflows/node.js.yml.new.tmp

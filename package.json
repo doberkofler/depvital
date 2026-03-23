@@ -2,9 +2,27 @@
 	"name": "depvital",
 	"version": "0.4.0",
 	"description": "A production-ready CLI tool for analyzing project dependencies' health, security, and maintenance.",
-	"type": "module",
+	"keywords": [
+		"audit",
+		"cli",
+		"dependencies",
+		"health",
+		"maintenance",
+		"npm",
+		"security",
+		"vulnerability"
+	],
+	"homepage": "https://github.com/doberkofler/depvital#readme",
+	"bugs": {
+		"url": "https://github.com/doberkofler/depvital/issues"
+	},
+	"license": "MIT",
+	"author": "Dieter Oberkofler <1009585+doberkofler@users.noreply.github.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/doberkofler/depvital.git"
+	},
 	"bin": "./dist/index.js",
-	"main": "./dist/index.js",
 	"files": [
 		"dist",
 		"README.md",
@@ -12,44 +30,20 @@
 		"CONTRIBUTING.md",
 		"CHANGELOG.md"
 	],
-	"engines": {
-		"node": ">=22"
-	},
-	"create-template-project": {
-		"template": "cli"
-	},
+	"type": "module",
+	"main": "./dist/index.js",
 	"scripts": {
 		"example": "node dist/index.js",
-		"lint": "tsc && oxlint -c oxlint.config.ts && pnpm run prettier",
-		"prettier": "prettier --check .",
-		"prettier-write": "prettier --write .",
+		"lint": "tsc && oxlint --disable-nested-config src client server tests *.config.ts && pnpm run format:check",
 		"test": "vitest run --coverage",
 		"ci": "pnpm run lint && pnpm run build && pnpm run test",
 		"prepare": "husky",
 		"dev": "vite build --watch",
 		"build": "vite build",
-		"create-changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0"
+		"create-changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
+		"format": "oxfmt --write .",
+		"format:check": "oxfmt --check ."
 	},
-	"keywords": [
-		"dependencies",
-		"security",
-		"vulnerability",
-		"cli",
-		"maintenance",
-		"npm",
-		"audit",
-		"health"
-	],
-	"author": "Dieter Oberkofler <1009585+doberkofler@users.noreply.github.com>",
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/doberkofler/depvital.git"
-	},
-	"bugs": {
-		"url": "https://github.com/doberkofler/depvital/issues"
-	},
-	"homepage": "https://github.com/doberkofler/depvital#readme",
 	"dependencies": {
 		"@inquirer/prompts": "^8.3.2",
 		"cli-progress": "3.12.0",
@@ -63,15 +57,21 @@
 		"@types/cli-progress": "3.11.6",
 		"@types/debug": "4.1.13",
 		"@types/node": "25.5.0",
-		"@vitest/coverage-v8": "4.1.0",
+		"@vitest/coverage-v8": "4.1.1",
 		"conventional-changelog": "7.2.0",
 		"eslint-plugin-regexp": "3.1.0",
 		"husky": "9.1.7",
+		"oxfmt": "0.41.0",
 		"oxlint": "1.56.0",
 		"oxlint-tsgolint": "0.17.1",
-		"prettier": "3.8.1",
 		"typescript": "5.9.3",
-		"vite": "8.0.1",
-		"vitest": "4.1.0"
+		"vite": "8.0.2",
+		"vitest": "4.1.1"
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"create-template-project": {
+		"template": "cli"
 	}
 }

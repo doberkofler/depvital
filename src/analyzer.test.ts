@@ -128,6 +128,100 @@ describe('analyzer', () => {
 		expect(getSpy).toHaveBeenCalledWith('pkg1');
 	});
 
+	it('should invalidate cache if version changed', async () => {
+		vi.mocked(pm.detectPackageManager).mockResolvedValue('npm');
+		vi.mocked(pm.getDependencies).mockResolvedValue([
+			{
+				name: 'pkg1',
+				current: '2.0.0', // New version
+				wanted: '2.0.0',
+				latest: '2.0.0',
+				isDev: false,
+			},
+		]);
+		vi.mocked(pm.getOutdated).mockResolvedValue([]);
+		vi.mocked(pm.getAudit).mockResolvedValue({vulnerabilities: [], deprecated: []});
+		vi.mocked(pm.getReleaseDate).mockResolvedValue(null);
+		vi.mocked(github.resolvePackageRepo).mockResolvedValue(null);
+
+		vi.spyOn(Cache.prototype, 'load').mockResolvedValue();
+		vi.spyOn(Cache.prototype, 'get').mockReturnValue({
+			package: 'pkg1',
+			current: '1.0.0', // Old version in cache
+			latest: '1.0.0',
+			outdated: false,
+			vulnerabilities: [],
+			maintenance: {isMaintained: true, healthScore: 0.9, lastRelease: null, daysSinceLastRelease: null},
+			changelog: {found: false, url: null, latestEntry: null},
+			deprecated: false,
+		});
+
+		const config: Config = {
+			json: false,
+			debug: false,
+			maxAge: 180,
+			includeDev: false,
+			cache: true,
+			progress: true,
+		};
+
+		const {results, stats} = await analyze(config);
+		expect(results).toHaveLength(1);
+		expect(results[0]?.current).toBe('2.0.0');
+		expect(stats.cacheHits).toBe(0);
+		expect(stats.cacheMisses).toBe(1);
+	});
+
+	it('should use fresh audit and outdated data even on cache hit', async () => {
+		vi.mocked(pm.detectPackageManager).mockResolvedValue('npm');
+		vi.mocked(pm.getDependencies).mockResolvedValue([
+			{
+				name: 'pkg1',
+				current: '1.0.0',
+				wanted: '1.0.0',
+				latest: '1.0.0',
+				isDev: false,
+			},
+		]);
+		// Freshly outdated
+		vi.mocked(pm.getOutdated).mockResolvedValue([{name: 'pkg1', current: '1.0.0', wanted: '1.1.0', latest: '1.1.0', isDev: false}]);
+		// Fresh vulnerability
+		vi.mocked(pm.getAudit).mockResolvedValue({
+			vulnerabilities: [{severity: 'critical', title: 'New Vuln', package: 'pkg1'}],
+			deprecated: [],
+		});
+		vi.mocked(pm.getReleaseDate).mockResolvedValue(null);
+
+		vi.spyOn(Cache.prototype, 'load').mockResolvedValue();
+		vi.spyOn(Cache.prototype, 'get').mockReturnValue({
+			package: 'pkg1',
+			current: '1.0.0',
+			latest: '1.0.0',
+			outdated: false, // Stale outdated info in cache
+			vulnerabilities: [], // Stale security info in cache
+			maintenance: {isMaintained: true, healthScore: 0.9, lastRelease: null, daysSinceLastRelease: null},
+			changelog: {found: false, url: null, latestEntry: null},
+			deprecated: false,
+		});
+
+		const config: Config = {
+			json: false,
+			debug: false,
+			maxAge: 180,
+			includeDev: false,
+			cache: true,
+			progress: true,
+		};
+
+		const {results, stats} = await analyze(config);
+		expect(results).toHaveLength(1);
+		expect(stats.cacheHits).toBe(1);
+		expect(results[0]?.outdated).toBe(true);
+		expect(results[0]?.latest).toBe('1.1.0');
+		expect(results[0]?.vulnerabilities).toHaveLength(1);
+		expect(results[0]?.vulnerabilities[0]?.severity).toBe('critical');
+	});
+
 	it('should update cache after analysis', async () => {
 		vi.mocked(pm.detectPackageManager).mockResolvedValue('npm');
 		vi.mocked(pm.getDependencies).mockResolvedValue([

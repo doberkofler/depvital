@@ -70,14 +70,30 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 		}
 		debug('Processing package: %s', pkg.name);
 		const cached = config.cache ? cache.get<Result>(pkg.name) : undefined;
-		if (cached) {
-			debug('Using cached result for: %s', pkg.name);
-			results.push(cached);
+
+		if (cached && cached.current === pkg.current) {
+			debug('Cache hit for %s (version %s matches)', pkg.name, pkg.current);
+			// Merge cached metadata with fresh update and audit info
+			const result: Result = {
+				...cached,
+				latest: pkg.latest,
+				outdated: pkg.current !== pkg.latest,
+				vulnerabilities: audit.vulnerabilities.filter((v) => v.package === pkg.name).map((v) => ({severity: v.severity, title: v.title})),
+			};
+			results.push(result);
 			cacheHits++;
 			continue;
 		}
 
-		cacheMisses++;
+		if (cached && cached.current !== pkg.current) {
+			debug('Cache invalidation for %s: version changed from %s to %s', pkg.name, cached.current, pkg.current);
+		} else if (config.cache) {
+			debug('Cache miss for %s', pkg.name);
+		}
+
+		if (config.cache) {
+			cacheMisses++;
+		}
 		debug('Resolving repository for: %s', pkg.name);
 		const repo = await resolvePackageRepo(pkg.name);
 

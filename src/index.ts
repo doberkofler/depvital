@@ -19,8 +19,8 @@ program
 	.option('--max-age <days>', 'Maintenance threshold in days', '180')
 	.option('--include-dev', 'Include devDependencies', false)
 	.option('--github-token <token>', 'GitHub token for higher rate limits')
-	.option('--no-cache', 'Disable caching', false)
-	.option('--no-progress', 'Suppress the progress bar', true)
+	.option('--no-cache', 'Disable caching')
+	.option('--no-progress', 'Suppress the progress bar')
 	.option('--package-manager <pm>', 'Force package manager (npm, pnpm, yarn)')
 	.action(async (options) => {
 		if (options.debug) {

@@ -1,4 +1,4 @@
-import {detectPackageManager, getDependencies, getOutdated, getAudit, getReleaseDate} from './package-manager.js';
+import {detectPackageManager, getDependencies, getOutdated, getAudit, getPackageInfo} from './package-manager.js';
 import {resolvePackageRepo, fetchGitHubMetadata, fetchChangelog, type GitHubMetadata} from './github.js';
 import {Cache} from './utils/cache.js';
 import {ConfigSchema, ResultSchema, type Config, type Result} from './types.js';
@@ -16,6 +16,7 @@ export type AnalysisResult = {
 		outdatedPackages: number;
 		vulnerablePackages: number;
 		unmaintainedPackages: number;
+		deprecatedPackages: number;
 		cacheHits: number;
 		cacheMisses: number;
 		durationMs: number;
@@ -73,9 +74,22 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 
 		if (cached && cached.current === pkg.current) {
 			debug('Cache hit for %s (version %s matches)', pkg.name, pkg.current);
+
+			// Recalculate time-based maintenance data from cached lastRelease date
+			const maintenance = {...cached.maintenance};
+			if (maintenance.lastRelease) {
+				const releaseDate = new Date(maintenance.lastRelease);
+				const now = new Date();
+				const diffTime = Math.abs(now.getTime() - releaseDate.getTime());
+				const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+				maintenance.daysSinceLastRelease = diffDays;
+				maintenance.isMaintained = diffDays <= config.maxAge;
+			}
+
 			// Merge cached metadata with fresh update and audit info
 			const result: Result = {
 				...cached,
+				maintenance,
 				latest: pkg.latest,
 				outdated: pkg.current !== pkg.latest,
 				vulnerabilities: audit.vulnerabilities.filter((v) => v.package === pkg.name).map((v) => ({severity: v.severity, title: v.title})),
@@ -98,18 +112,18 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 		const repo = await resolvePackageRepo(pkg.name);
 
 		// Fallback for maintenance info: npm registry
-		debug('Fetching release date from registry for: %s', pkg.name);
-		const lastRelease = await getReleaseDate(pm, pkg.name);
+		debug('Fetching package info from registry for: %s', pkg.name);
+		const pkgInfo = await getPackageInfo(pm, pkg.name);
 
 		let maintenance: Result['maintenance'] = {
-			lastRelease,
+			lastRelease: pkgInfo.lastRelease,
 			daysSinceLastRelease: null,
 			isMaintained: null,
 			healthScore: null,
 		};
 
-		if (lastRelease) {
-			const releaseDate = new Date(lastRelease);
+		if (pkgInfo.lastRelease) {
+			const releaseDate = new Date(pkgInfo.lastRelease);
 			const now = new Date();
 			const diffTime = Math.abs(now.getTime() - releaseDate.getTime());
 			const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -162,7 +176,7 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 			latest: pkg.latest,
 			outdated: pkg.current !== pkg.latest,
 			vulnerabilities: audit.vulnerabilities.filter((v) => v.package === pkg.name).map((v) => ({severity: v.severity, title: v.title})),
-			deprecated: false,
+			deprecated: pkgInfo.deprecated,
 			maintenance,
 			githubUrl: repo ? `https://github.com/${repo}` : null,
 			changelog,
@@ -185,6 +199,7 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 		outdatedPackages: results.filter((r) => r.outdated).length,
 		vulnerablePackages: results.filter((r) => r.vulnerabilities.length > 0).length,
 		unmaintainedPackages: results.filter((r) => r.maintenance.isMaintained === false).length,
+		deprecatedPackages: results.filter((r) => r.deprecated).length,
 		cacheHits,
 		cacheMisses,
 		durationMs: Date.now() - startTime,

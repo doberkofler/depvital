@@ -260,26 +260,42 @@ export async function getAudit(pm: 'npm' | 'yarn' | 'pnpm'): Promise<AuditResult
 	return result;
 }
 
-export async function getReleaseDate(pm: 'npm' | 'yarn' | 'pnpm', packageName: string): Promise<string | null> {
+export type PackageInfo = {
+	lastRelease: string | null;
+	deprecated: boolean;
+	deprecatedReason?: string;
+};
+
+export async function getPackageInfo(pm: 'npm' | 'yarn' | 'pnpm', packageName: string): Promise<PackageInfo> {
 	let command = '';
 	if (pm === 'npm') {
-		command = `npm view ${packageName} time.modified --json`;
+		command = `npm view ${packageName} time.modified deprecated --json`;
 	} else if (pm === 'pnpm') {
-		command = `pnpm view ${packageName} time.modified --json`;
+		command = `pnpm view ${packageName} time.modified deprecated --json`;
 	} else if (pm === 'yarn') {
-		command = `yarn info ${packageName} time.modified --json`;
+		command = `yarn info ${packageName} time.modified deprecated --json`;
 	}
 
-	debug('Executing release date command: %s', command);
+	debug('Executing package info command: %s', command);
 	try {
 		const {stdout} = await runCommand(command);
 		if (!stdout.trim()) {
-			return null;
+			return {lastRelease: null, deprecated: false};
 		}
-		const date = JSON.parse(stdout);
-		return typeof date === 'string' ? date : null;
+		const info = JSON.parse(stdout);
+
+		if (typeof info === 'string') {
+			// Only time.modified was returned
+			return {lastRelease: info, deprecated: false};
+		}
+
+		return {
+			lastRelease: info['time.modified'] || null,
+			deprecated: !!info.deprecated,
+			deprecatedReason: info.deprecated || undefined,
+		};
 	} catch (error) {
-		debug('Error fetching release date for %s: %O', packageName, error);
-		return null;
+		debug('Error fetching package info for %s: %O', packageName, error);
+		return {lastRelease: null, deprecated: false};
 	}
 }

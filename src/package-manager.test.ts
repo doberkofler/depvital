@@ -1,5 +1,5 @@
 import {describe, it, expect, vi, beforeEach} from 'vitest';
-import {detectPackageManager, getDependencies, getOutdated, getAudit} from './package-manager.js';
+import {detectPackageManager, getDependencies, getOutdated, getAudit, getPackageInfo} from './package-manager.js';
 import {existsSync, readFileSync} from 'node:fs';
 import * as exec from './utils/exec.js';
 
@@ -303,6 +303,57 @@ describe('package-manager', () => {
 
 			const audit = await getAudit('npm');
 			expect(audit.vulnerabilities).toHaveLength(0);
+		});
+	});
+
+	describe('getPackageInfo', () => {
+		it('should fetch package info for non-deprecated package', async () => {
+			const date = '2023-01-01T00:00:00.000Z';
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify(date),
+				stderr: '',
+				exitCode: 0,
+			});
+
+			const info = await getPackageInfo('npm', 'express');
+			expect(info).toEqual({
+				lastRelease: date,
+				deprecated: false,
+			});
+		});
+
+		it('should fetch package info for deprecated package', async () => {
+			const date = '2023-01-01T00:00:00.000Z';
+			const reason = 'this package is old';
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify({
+					'time.modified': date,
+					deprecated: reason,
+				}),
+				stderr: '',
+				exitCode: 0,
+			});
+
+			const info = await getPackageInfo('npm', 'request');
+			expect(info).toEqual({
+				lastRelease: date,
+				deprecated: true,
+				deprecatedReason: reason,
+			});
+		});
+
+		it('should handle empty output in getPackageInfo', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: '',
+				stderr: '',
+				exitCode: 0,
+			});
+
+			const info = await getPackageInfo('npm', 'unknown');
+			expect(info).toEqual({
+				lastRelease: null,
+				deprecated: false,
+			});
 		});
 	});
 });

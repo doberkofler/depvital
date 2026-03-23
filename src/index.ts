@@ -138,17 +138,19 @@ function printTable(results: any[], githubRateLimitHit: boolean, stats: Analysis
 	const GREEN = '\x1b[32m';
 	const BOLD = '\x1b[1m';
 
-	const headers = ['Package', 'Current', 'Latest', 'Vulnerable', 'Last release', 'GitHub', 'Changelog'];
+	const headers = ['Package', 'Current', 'Latest', 'Vulnerable', 'Deprecated', 'Last release', 'GitHub', 'Changelog'];
 	const columnWidths = headers.map((h) => h.length);
 
 	results.forEach((r) => {
 		columnWidths[0] = Math.max(columnWidths[0]!, r.package.length);
 		columnWidths[1] = Math.max(columnWidths[1]!, r.current.length);
 		columnWidths[2] = Math.max(columnWidths[2]!, r.latest?.length || 0);
+		columnWidths[3] = Math.max(columnWidths[3]!, 10); // Vulnerable column
+		columnWidths[4] = Math.max(columnWidths[4]!, 10); // Deprecated column
 		const ageStr = formatHumanAge(r.maintenance.lastRelease);
-		columnWidths[4] = Math.max(columnWidths[4]!, ageStr.length);
-		columnWidths[5] = Math.max(columnWidths[5]!, r.githubUrl?.length || 0);
-		columnWidths[6] = Math.max(columnWidths[6]!, r.changelog.url?.length || 0);
+		columnWidths[5] = Math.max(columnWidths[5]!, ageStr.length);
+		columnWidths[6] = Math.max(columnWidths[6]!, r.githubUrl?.length || 0);
+		columnWidths[7] = Math.max(columnWidths[7]!, r.changelog.url?.length || 0);
 	});
 
 	const formatRow = (row: string[]) => row.map((cell, i) => cell.padEnd(columnWidths[i] || 0)).join(' | ');
@@ -175,6 +177,7 @@ function printTable(results: any[], githubRateLimitHit: boolean, stats: Analysis
 			r.current,
 			latestStr,
 			isVulnerable ? `${RED}YES${RESET}` : 'no',
+			r.deprecated ? `${RED}YES${RESET}` : 'no',
 			!isMaintained && r.maintenance.lastRelease !== null ? `${RED}${ageStr}${RESET}` : ageStr,
 			r.githubUrl || '',
 			r.changelog.url || '',
@@ -203,6 +206,7 @@ function printTable(results: any[], githubRateLimitHit: boolean, stats: Analysis
 	console.log(`- Total packages:    ${stats.totalPackages}`);
 	console.log(`- Outdated:          ${stats.outdatedPackages > 0 ? RED : GREEN}${stats.outdatedPackages}${RESET}`);
 	console.log(`- Vulnerable:        ${stats.vulnerablePackages > 0 ? RED : GREEN}${stats.vulnerablePackages}${RESET}`);
+	console.log(`- Deprecated:        ${stats.deprecatedPackages > 0 ? RED : GREEN}${stats.deprecatedPackages}${RESET}`);
 	console.log(`- Unmaintained:      ${stats.unmaintainedPackages > 0 ? RED : GREEN}${stats.unmaintainedPackages}${RESET}`);
 
 	console.log(`\n${BOLD}Caching:${RESET}`);

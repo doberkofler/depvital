@@ -46,11 +46,10 @@ We follow the **Conventional Commits** specification. This is **enforced** by `c
 - **husky**: Modern native git hooks made easy.
 - **oxlint**: A JavaScript linter written in Rust.
 - **oxlint-tsgolint**: TypeScript-specific rules for oxlint.
-- **tinyexec**: A minimal library for executing processes in Node.
 - **prettier**: An opinionated code formatter.
 - **typescript**: A superset of JavaScript that compiles to clean JavaScript output.
 - **vitest**: A Vite-native unit test framework.
 - **commander**: The complete solution for node.js command-line interfaces.
 - **cli-progress**: Easy to use progress-bar for command-line/terminal applications.
 - **@types/cli-progress**: TypeScript definitions for cli-progress.
-- **tsdown**: A zero-config bundler for TypeScript.
+- **vite**: Next generation frontend tooling, used for bundling.

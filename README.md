@@ -1,50 +1,64 @@
 # depvital
 
+[![npm version](https://img.shields.io/npm/v/depvital.svg)](https://www.npmjs.com/package/depvital)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js CI](https://github.com/doberkofler/depvital/actions/workflows/node.js.yml/badge.svg)](https://github.com/doberkofler/depvital/actions/workflows/node.js.yml)
+
 A production-ready CLI tool for analyzing project dependencies' health, security, and maintenance.
 
 `depvital` provides a comprehensive report on your project's dependencies by consolidating:
 
-1. **Outdated Status**: Current vs latest versions.
-2. **Security & Deprecations**: Known vulnerabilities and deprecated packages.
-3. **Maintenance Health**: GitHub activity, stars, and issue ratios.
-4. **Changelogs**: Direct extraction of the latest release notes.
+1.  **Outdated Status**: Current vs latest versions.
+2.  **Security & Deprecations**: Known vulnerabilities and deprecated packages.
+3.  **Maintenance Health**: GitHub activity, stars, and issue ratios.
+4.  **Changelogs**: Direct extraction of the latest release notes.
+
+## Quick Start
+
+Try it directly without installation:
+
+```bash
+npx depvital
+```
 
 ## Features
 
-- **Multi-Package Manager Support**: Works with `npm`, `yarn`, and `pnpm`.
-- **Zod-Powered Validation**: Strict validation of all external data boundaries.
-- **Maintenance Scoring**: Computes a health score based on commit recency and community metrics.
-- **Interactive Updates**: Select and update outdated dependencies directly via the CLI.
-- **Fail Thresholds**: Configurable failure based on vulnerability severity.
-- **Smart Caching**: Local caching to avoid API rate limits.
-- **Extensive Debugging**: Full instrumentation with the `--debug` flag.
+- 📦 **Multi-Package Manager Support**: Works with `npm`, `yarn`, and `pnpm`.
+- ✅ **Zod-Powered Validation**: Strict validation of all external data boundaries.
+- 📊 **Maintenance Scoring**: Computes a health score based on commit recency and community metrics.
+- 🔄 **Interactive Updates**: Select and update outdated dependencies directly via the CLI.
+- 🛡️ **Fail Thresholds**: Configurable failure based on vulnerability severity.
+- ⚡ **Smart Caching**: Local caching to avoid API rate limits.
+- 🔍 **Extensive Debugging**: Full instrumentation with the `--debug` flag.
 
 ## Installation
 
 ```bash
-pnpm install
+npm install -g depvital
+# or
+pnpm add -g depvital
 ```
 
 ## Usage
 
 ```bash
 # Basic analysis
-node dist/index.mjs
+depvital
 
 # Fail on high severity vulnerabilities
-node dist/index.mjs --fail-on high
-
-# JSON output
-node dist/index.mjs --json
-
-# Debugging
-node dist/index.mjs --debug
-
-# Suppress progress bar
-node dist/index.mjs --no-progress
+depvital --fail-on high
 
 # Interactive update
-node dist/index.mjs --update
+depvital --update
+
+# JSON output
+depvital --json > report.json
+
+# Debugging
+depvital --debug
+
+# Suppress progress bar
+depvital --no-progress
 ```
 
 ## Development Workflow

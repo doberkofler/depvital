@@ -264,16 +264,17 @@ export type PackageInfo = {
 	lastRelease: string | null;
 	deprecated: boolean;
 	deprecatedReason?: string;
+	repository?: string | {url?: string};
 };
 
 export async function getPackageInfo(pm: 'npm' | 'yarn' | 'pnpm', packageName: string): Promise<PackageInfo> {
 	let command = '';
 	if (pm === 'npm') {
-		command = `npm view ${packageName} time.modified deprecated --json`;
+		command = `npm view ${packageName} time.modified deprecated repository --json`;
 	} else if (pm === 'pnpm') {
-		command = `pnpm view ${packageName} time.modified deprecated --json`;
+		command = `pnpm view ${packageName} time.modified deprecated repository --json`;
 	} else if (pm === 'yarn') {
-		command = `yarn info ${packageName} time.modified deprecated --json`;
+		command = `yarn info ${packageName} time.modified deprecated repository --json`;
 	}
 
 	debug('Executing package info command: %s', command);
@@ -293,6 +294,7 @@ export async function getPackageInfo(pm: 'npm' | 'yarn' | 'pnpm', packageName: s
 			lastRelease: info['time.modified'] || null,
 			deprecated: !!info.deprecated,
 			deprecatedReason: info.deprecated || undefined,
+			repository: info.repository,
 		};
 	} catch (error) {
 		debug('Error fetching package info for %s: %O', packageName, error);

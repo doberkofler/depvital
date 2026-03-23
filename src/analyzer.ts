@@ -108,12 +108,13 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 		if (config.cache) {
 			cacheMisses++;
 		}
-		debug('Resolving repository for: %s', pkg.name);
-		const repo = await resolvePackageRepo(pkg.name);
 
 		// Fallback for maintenance info: npm registry
 		debug('Fetching package info from registry for: %s', pkg.name);
 		const pkgInfo = await getPackageInfo(pm, pkg.name);
+
+		debug('Resolving repository for: %s', pkg.name);
+		const repo = await resolvePackageRepo(pkg.name, process.cwd(), pkgInfo.repository);
 
 		let maintenance: Result['maintenance'] = {
 			lastRelease: pkgInfo.lastRelease,

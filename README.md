@@ -1,8 +1,10 @@
 # depvital
 
-[![npm version](https://img.shields.io/npm/v/depvital.svg)](https://www.npmjs.com/package/depvital)
+[![NPM Version](https://img.shields.io/npm/v/depvital.svg)](https://www.npmjs.com/package/depvital)
+[![NPM Downloads](https://img.shields.io/npm/dm/depvital.svg)](https://www.npmjs.com/package/depvital)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js CI](https://github.com/doberkofler/depvital/actions/workflows/node.js.yml/badge.svg)](https://github.com/doberkofler/depvital/actions/workflows/node.js.yml)
+[![Coverage Status](https://coveralls.io/repos/github/doberkofler/depvital/badge.svg?branch=main)](https://coveralls.io/github/doberkofler/depvital?branch=main)
 
 A production-ready CLI tool for analyzing project dependencies' health, security, and maintenance.
 

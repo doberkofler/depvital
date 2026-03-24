@@ -2,32 +2,53 @@ name: Node.js CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
-    branches: [main, master]
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [22.x, 24.x]
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 9
-      - name: Use Node.js
+          run_install: false
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-<<<<<<< /Users/doberkofler/MyShare/doberkofler/depvital/.github/workflows/node.js.yml
-          node-version: '22.x'
-          cache: 'pnpm'
-      - run: 'pnpm install --frozen-lockfile'
-      - run: 'pnpm run ci'
-=======
-          node-version: "22.x"
+          node-version: ${{ matrix.node-version }}
           cache: "pnpm"
-      - run: "pnpm install --frozen-lockfile"
-      
-      - run: "pnpm run ci"
+
+      - name: Verify pnpm
+        run: pnpm --version
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Unit test
+        run: pnpm run test
+
       - name: Coveralls GitHub Action
         uses: coverallsapp/github-action@v2
->>>>>>> /Users/doberkofler/MyShare/doberkofler/depvital/.github/workflows/node.js.yml.new.tmp
+
+      - name: Integration test
+        run: pnpm run integration-test

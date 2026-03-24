@@ -1,13 +1,3 @@
-<<<<<<< /Users/doberkofler/MyShare/doberkofler/depvital/.gitignore
-node_modules
-dist
-coverage
-.DS_Store
-.env
-
-# specific
-.depvital-cache.json
-=======
 # ---------------------------
 # OS / Filesystem
 # ---------------------------
@@ -99,4 +89,8 @@ yarn.lock
 *.tgz
 *.bak
 *.tmp
->>>>>>> /Users/doberkofler/MyShare/doberkofler/depvital/.gitignore.new.tmp
+
+# ---------------------------
+# Custom
+# ---------------------------
+.depvital-cache.json

@@ -3,6 +3,9 @@ import pluginRegexp from 'eslint-plugin-regexp';
 
 const commonIgnore = ['**/.*', 'node_modules/**', 'dist/**', 'build/**', 'coverage/**', 'temp/**', 'public/**', '**/*.md'];
 
+/** Filter out core ESLint rules bundled into eslint-plugin-regexp recommended config */
+const regexpPluginRules = Object.fromEntries(Object.entries(pluginRegexp.configs.recommended.rules ?? {}).filter(([key]) => key.startsWith('regexp/')));
+
 export const linter = defineConfig({
 	options: {
 		typeAware: true,
@@ -14,7 +17,7 @@ export const linter = defineConfig({
 		correctness: 'error',
 	},
 	rules: {
-		...pluginRegexp.configs.recommended.rules,
+		...regexpPluginRules,
 		curly: ['error', 'all'],
 		'typescript/no-unused-vars': [
 			'error',

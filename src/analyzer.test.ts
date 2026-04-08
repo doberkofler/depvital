@@ -1,5 +1,5 @@
 import {describe, it, expect, vi, beforeEach} from 'vitest';
-import {analyze} from './analyzer.js';
+import {analyze, type ProgressCallback} from './analyzer.js';
 import * as pm from './package-manager.js';
 import * as github from './github.js';
 import {Cache} from './utils/cache.js';
@@ -289,7 +289,7 @@ describe('analyzer', () => {
 		vi.mocked(pm.getPackageInfo).mockResolvedValue({lastRelease: null, deprecated: false});
 		vi.mocked(github.resolvePackageRepo).mockResolvedValue(null);
 
-		const onProgress = vi.fn();
+		const onProgress = vi.fn<ProgressCallback>();
 		const config: Config = {
 			json: false,
 			debug: false,

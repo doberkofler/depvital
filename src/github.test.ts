@@ -20,6 +20,7 @@ describe('github', () => {
 		it('should handle github.com URLs', () => {
 			expect(normalizeRepoUrl('https://github.com/user/repo')).toBe('user/repo');
 			expect(normalizeRepoUrl('https://github.com/user/repo.git')).toBe('user/repo');
+			expect(normalizeRepoUrl('https://github.com/tj/commander.js')).toBe('tj/commander.js');
 		});
 
 		it('should handle github: shorthand', () => {

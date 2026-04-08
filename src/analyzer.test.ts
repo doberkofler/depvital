@@ -65,12 +65,11 @@ describe('analyzer', () => {
 		const config: Config = {
 			json: false,
 			debug: false,
-			failOn: 'high',
 			maxAge: 180,
-			includeDev: false,
 			cache: false,
 			progress: true,
 			update: false,
+			minReleaseAge: 3,
 		};
 
 		const {results} = await analyze(config);
@@ -115,6 +114,9 @@ describe('analyzer', () => {
 			package: 'pkg1',
 			current: '1.0.0',
 			latest: '1.0.0',
+			latestAvailable: '1.0.0',
+			latestReleaseDate: tenDaysAgo.toISOString(),
+			daysSinceLatestRelease: 5,
 			outdated: false,
 			isDev: false,
 			vulnerabilities: [],
@@ -132,10 +134,10 @@ describe('analyzer', () => {
 			json: false,
 			debug: false,
 			maxAge: 180,
-			includeDev: false,
 			cache: true,
 			progress: true,
 			update: false,
+			minReleaseAge: 3,
 		};
 
 		const {results} = await analyze(config);
@@ -145,6 +147,36 @@ describe('analyzer', () => {
 
 		// Verify recalculation of daysSinceLastRelease
 		expect(results[0]?.maintenance.daysSinceLastRelease).toBeGreaterThanOrEqual(10);
+	});
+
+	it('should mark package outdated using absolute latest from registry info', async () => {
+		vi.mocked(pm.detectPackageManager).mockResolvedValue('npm');
+		vi.mocked(pm.getDependencies).mockResolvedValue([{name: 'pkg1', current: '1.0.0', wanted: '1.0.0', latest: '1.0.0', isDev: false}]);
+		vi.mocked(pm.getOutdated).mockResolvedValue([]);
+		vi.mocked(pm.getAudit).mockResolvedValue({vulnerabilities: [], deprecated: []});
+		vi.mocked(pm.getPackageInfo).mockResolvedValue({
+			lastRelease: '2024-01-01T00:00:00.000Z',
+			deprecated: false,
+			latestVersion: '1.1.0',
+			latestReleaseDate: '2024-01-01T00:00:00.000Z',
+		});
+		vi.mocked(github.resolvePackageRepo).mockResolvedValue(null);
+
+		const config: Config = {
+			json: false,
+			debug: false,
+			maxAge: 180,
+			cache: false,
+			progress: false,
+			update: false,
+			minReleaseAge: 3,
+		};
+
+		const {results} = await analyze(config);
+		expect(results).toHaveLength(1);
+		expect(results[0]?.latest).toBe('1.1.0');
+		expect(results[0]?.outdated).toBe(true);
+		expect(results[0]?.daysSinceLatestRelease).not.toBeNull();
 	});
 
 	it('should invalidate cache if version changed', async () => {
@@ -180,10 +212,10 @@ describe('analyzer', () => {
 			json: false,
 			debug: false,
 			maxAge: 180,
-			includeDev: false,
 			cache: true,
 			progress: true,
 			update: false,
+			minReleaseAge: 3,
 		};
 
 		const {results, stats} = await analyze(config);
@@ -218,6 +250,7 @@ describe('analyzer', () => {
 			package: 'pkg1',
 			current: '1.0.0',
 			latest: '1.0.0',
+			latestAvailable: '1.0.0',
 			outdated: false, // Stale outdated info in cache
 			vulnerabilities: [], // Stale security info in cache
 			maintenance: {isMaintained: true, healthScore: 0.9, lastRelease: null, daysSinceLastRelease: null},
@@ -229,10 +262,10 @@ describe('analyzer', () => {
 			json: false,
 			debug: false,
 			maxAge: 180,
-			includeDev: false,
 			cache: true,
 			progress: true,
 			update: false,
+			minReleaseAge: 3,
 		};
 
 		const {results, stats} = await analyze(config);
@@ -267,10 +300,10 @@ describe('analyzer', () => {
 			json: false,
 			debug: false,
 			maxAge: 180,
-			includeDev: false,
 			cache: true,
 			progress: true,
 			update: false,
+			minReleaseAge: 3,
 		};
 
 		await analyze(config);
@@ -294,10 +327,10 @@ describe('analyzer', () => {
 			json: false,
 			debug: false,
 			maxAge: 180,
-			includeDev: false,
 			cache: false,
 			progress: true,
 			update: false,
+			minReleaseAge: 3,
 		};
 
 		await analyze(config, onProgress);
@@ -314,7 +347,7 @@ describe('analyzer', () => {
 		vi.mocked(github.fetchGitHubMetadata).mockResolvedValue(null);
 		vi.mocked(github.fetchChangelog).mockResolvedValue({found: false, url: null, latestEntry: null});
 
-		const config: Config = {json: false, debug: false, maxAge: 180, includeDev: false, cache: false, progress: false, update: false};
+		const config: Config = {json: false, debug: false, maxAge: 180, cache: false, progress: false, update: false, minReleaseAge: 3};
 		const {githubRateLimitHit} = await analyze(config);
 		expect(githubRateLimitHit).toBe(true);
 	});

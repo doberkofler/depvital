@@ -4,6 +4,9 @@ export const ResultSchema = z.object({
 	package: z.string(),
 	current: z.string(),
 	latest: z.string().nullable(),
+	latestAvailable: z.string().nullable().optional(),
+	latestReleaseDate: z.string().nullable().optional(),
+	daysSinceLatestRelease: z.number().nullable().optional(),
 	outdated: z.boolean(),
 	isDev: z.boolean(),
 	vulnerabilities: z.array(
@@ -32,13 +35,12 @@ export type Result = z.infer<typeof ResultSchema>;
 export const ConfigSchema = z.object({
 	json: z.boolean().default(false),
 	debug: z.boolean().default(false),
-	failOn: z.enum(['low', 'moderate', 'high', 'critical']).optional(),
 	maxAge: z.number().default(180),
-	includeDev: z.boolean().default(false),
 	githubToken: z.string().optional(),
 	cache: z.boolean().default(true),
 	progress: z.boolean().default(true),
 	update: z.boolean().default(false),
+	minReleaseAge: z.number().default(3),
 	packageManager: z.enum(['npm', 'yarn', 'pnpm']).optional(),
 });
 

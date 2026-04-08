@@ -7,34 +7,41 @@ import {SingleBar, Presets} from 'cli-progress';
 import createDebug from 'debug';
 import {checkbox} from '@inquirer/prompts';
 import {detectPackageManager, updatePackages} from './package-manager.js';
+import {readFileSync} from 'node:fs';
 
 const debug = createDebug('depvital:main');
 const program = new Command();
+const pkgUrl = new URL('../package.json', import.meta.url);
+const pkg = JSON.parse(readFileSync(pkgUrl, 'utf-8'));
 
 program
-	.name('depvital')
+	.name(pkg.name)
 	.description('Analyze project dependencies for health, security, and maintenance')
-	.version('0.1.0')
+	.version(pkg.version)
 	.option('--json', 'Output results in JSON format', false)
 	.option('--debug', 'Enable extensive debug instrumentation', false)
 	.option('--fail-on <severity>', 'Fail if vulnerability severity is at or above threshold', 'moderate')
 	.option('--max-age <days>', 'Maintenance threshold in days', '180')
-	.option('--include-dev', 'Include devDependencies', false)
 	.option('--github-token <token>', 'GitHub token for higher rate limits')
 	.option('--no-cache', 'Disable caching')
 	.option('--no-progress', 'Suppress the progress bar')
 	.option('--update', 'Select outdated packages to update', false)
+	.option('--min-release-age <days>', 'Minimum number of days since release', '3')
 	.option('--package-manager <pm>', 'Force package manager (npm, pnpm, yarn)')
 	.action(async (options) => {
 		if (options.debug) {
 			createDebug.enable('depvital:*');
 		}
 
+		console.log(`${pkg.name} v${pkg.version}`);
+		console.log(`Arguments: min-release-age: ${options.minReleaseAge} days, max-age: ${options.maxAge} days, update: ${options.update}`);
+
 		debug('Starting CLI with options: %O', options);
 
 		const config = ConfigSchema.parse({
 			...options,
 			maxAge: parseInt(options.maxAge, 10),
+			minReleaseAge: parseInt(options.minReleaseAge, 10),
 			githubToken: options.githubToken || process.env['GITHUB_TOKEN'],
 		});
 
@@ -42,7 +49,7 @@ program
 
 		let bar: SingleBar | null = null;
 		if (!config.json && !config.debug && config.progress) {
-			bar = new SingleBar({}, Presets.shades_classic);
+			bar = new SingleBar({clearOnComplete: true}, Presets.shades_classic);
 			bar.start(100, 0);
 		}
 
@@ -67,11 +74,13 @@ program
 				console.log(JSON.stringify({results, stats}, null, 2));
 			} else {
 				debug('Printing table results');
-				printTable(results, githubRateLimitHit, stats);
+				printTable(results, githubRateLimitHit, stats, config.minReleaseAge);
 			}
 
 			if (config.update && !config.json) {
-				const outdated = results.filter((r) => r.outdated && r.latest);
+				const outdated = results.filter(
+					(r) => r.outdated && r.latest && typeof r.daysSinceLatestRelease === 'number' && r.daysSinceLatestRelease >= config.minReleaseAge,
+				);
 				if (outdated.length > 0) {
 					const selected = await checkbox({
 						message: 'Select packages to update:',
@@ -95,20 +104,6 @@ program
 					} else {
 						console.log('\nNo packages selected for update.');
 					}
-				}
-			}
-
-			// Check for fail-on threshold
-			if (config.failOn) {
-				const severities = ['low', 'moderate', 'high', 'critical'] as const;
-				const thresholdIndex = severities.indexOf(config.failOn as any);
-
-				const hasBreach = results.some((r) => r.vulnerabilities.some((v) => severities.indexOf(v.severity) >= thresholdIndex));
-
-				if (hasBreach) {
-					debug('Fail threshold breached: %s', config.failOn);
-					console.error(`\nFound vulnerabilities meeting or exceeding "${config.failOn}" threshold.`);
-					process.exit(1);
 				}
 			}
 		} catch (error) {
@@ -157,7 +152,7 @@ function isMajorUpdate(current: string, latest: string | null): boolean {
 	return currentMajor !== latestMajor;
 }
 
-function printTable(results: any[], githubRateLimitHit: boolean, stats: AnalysisResult['stats']) {
+function printTable(results: any[], githubRateLimitHit: boolean, stats: AnalysisResult['stats'], minReleaseAge: number) {
 	if (results.length === 0) {
 		console.log('No outdated dependencies found.');
 		return;
@@ -169,15 +164,23 @@ function printTable(results: any[], githubRateLimitHit: boolean, stats: Analysis
 	const GREEN = '\x1b[32m';
 	const BOLD = '\x1b[1m';
 
-	const headers = ['Package', 'Current', 'Latest', 'Vulnerable', 'Deprecated', 'Last release', 'GitHub', 'Changelog'];
+	const headers = ['Package', 'Current', 'Latest', 'Update', 'Vulnerable', 'Age', 'GitHub', 'Changelog'];
 	const columnWidths = headers.map((h) => h.length);
 
 	results.forEach((r) => {
 		columnWidths[0] = Math.max(columnWidths[0]!, r.package.length);
 		columnWidths[1] = Math.max(columnWidths[1]!, r.current.length);
 		columnWidths[2] = Math.max(columnWidths[2]!, r.latest?.length || 0);
-		columnWidths[3] = Math.max(columnWidths[3]!, 10); // Vulnerable column
-		columnWidths[4] = Math.max(columnWidths[4]!, 10); // Deprecated column
+
+		let updateLen = 0;
+		if (r.outdated && r.latest) {
+			if (r.daysSinceLatestRelease !== null) {
+				updateLen = r.daysSinceLatestRelease >= minReleaseAge ? 6 : 8; // 'update'.length or 'cooldown'.length
+			}
+		}
+		columnWidths[3] = Math.max(columnWidths[3]!, updateLen);
+
+		columnWidths[4] = Math.max(columnWidths[4]!, 10); // Vulnerable column
 		const ageStr = formatHumanAge(r.maintenance.lastRelease);
 		columnWidths[5] = Math.max(columnWidths[5]!, ageStr.length);
 		columnWidths[6] = Math.max(columnWidths[6]!, r.githubUrl?.length || 0);
@@ -203,12 +206,24 @@ function printTable(results: any[], githubRateLimitHit: boolean, stats: Analysis
 			}
 		}
 
+		let updateStr = '';
+		if (r.outdated && r.latest) {
+			if (r.daysSinceLatestRelease !== null) {
+				const ageDays = r.daysSinceLatestRelease;
+				if (ageDays >= minReleaseAge) {
+					updateStr = `${GREEN}update${RESET}`;
+				} else {
+					updateStr = `${RED}cooldown${RESET}`;
+				}
+			}
+		}
+
 		const row = [
 			r.package,
 			r.current,
 			latestStr,
+			updateStr,
 			isVulnerable ? `${RED}YES${RESET}` : 'no',
-			r.deprecated ? `${RED}YES${RESET}` : 'no',
 			!isMaintained && r.maintenance.lastRelease !== null ? `${RED}${ageStr}${RESET}` : ageStr,
 			r.githubUrl || '',
 			r.changelog.url || '',

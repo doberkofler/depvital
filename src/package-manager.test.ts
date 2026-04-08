@@ -45,7 +45,7 @@ describe('package-manager', () => {
 				exitCode: 0,
 			});
 
-			const deps = await getDependencies('npm', false);
+			const deps = await getDependencies('npm');
 			expect(deps).toHaveLength(1);
 			expect(deps[0]).toEqual({
 				name: 'pkg1',
@@ -70,7 +70,7 @@ describe('package-manager', () => {
 				exitCode: 0,
 			});
 
-			const deps = await getDependencies('npm', false);
+			const deps = await getDependencies('npm');
 			expect(deps).toHaveLength(1);
 			expect(deps[0]).toMatchObject({name: 'pkg1', current: '1.0.0'});
 			expect(deps.find((d) => d.name === 'extraneousPkg')).toBeUndefined();
@@ -90,7 +90,7 @@ describe('package-manager', () => {
 				exitCode: 0,
 			});
 
-			const deps = await getDependencies('npm', true);
+			const deps = await getDependencies('npm');
 			expect(deps).toHaveLength(1);
 			expect(deps[0]).toMatchObject({name: 'pkg1', current: '1.0.0'});
 		});
@@ -110,7 +110,7 @@ describe('package-manager', () => {
 				exitCode: 0,
 			});
 
-			const deps = await getDependencies('pnpm', false);
+			const deps = await getDependencies('pnpm');
 			expect(deps).toHaveLength(1);
 			expect(deps[0]!.name).toBe('pkg1');
 		});
@@ -136,7 +136,7 @@ describe('package-manager', () => {
 				exitCode: 0,
 			});
 
-			const deps = await getDependencies('npm', true);
+			const deps = await getDependencies('npm');
 			expect(deps).toHaveLength(2);
 			expect(deps).toContainEqual({
 				name: 'pkg1',
@@ -160,7 +160,7 @@ describe('package-manager', () => {
 				stderr: '',
 				exitCode: 1,
 			});
-			const deps = await getDependencies('npm', false);
+			const deps = await getDependencies('npm');
 			expect(deps).toHaveLength(0);
 		});
 
@@ -177,7 +177,7 @@ describe('package-manager', () => {
 				exitCode: 0,
 			});
 
-			const deps = await getDependencies('pnpm', false);
+			const deps = await getDependencies('pnpm');
 			expect(deps).toHaveLength(1);
 			expect(deps[0]!.name).toBe('pkg1');
 		});
@@ -195,7 +195,7 @@ describe('package-manager', () => {
 				exitCode: 0,
 			});
 
-			const deps = await getDependencies('yarn', false);
+			const deps = await getDependencies('yarn');
 			expect(deps).toHaveLength(1);
 			expect(deps[0]!.name).toBe('pkg1');
 		});
@@ -214,7 +214,7 @@ describe('package-manager', () => {
 				stderr: '',
 				exitCode: 0,
 			});
-			const deps = await getDependencies('npm', false);
+			const deps = await getDependencies('npm');
 			expect(deps).toHaveLength(1);
 		});
 
@@ -224,7 +224,7 @@ describe('package-manager', () => {
 				stderr: '',
 				exitCode: 0,
 			});
-			const deps = await getDependencies('npm', false);
+			const deps = await getDependencies('npm');
 			expect(deps).toHaveLength(0);
 		});
 
@@ -234,7 +234,7 @@ describe('package-manager', () => {
 				stderr: '',
 				exitCode: 0,
 			});
-			const deps = await getDependencies('npm', false);
+			const deps = await getDependencies('npm');
 			expect(deps).toHaveLength(0);
 		});
 	});
@@ -254,7 +254,7 @@ describe('package-manager', () => {
 				exitCode: 1, // npm outdated returns 1 if anything is outdated
 			});
 
-			const outdated = await getOutdated('npm', false);
+			const outdated = await getOutdated('npm');
 			expect(outdated).toHaveLength(1);
 			expect(outdated[0]).toEqual({
 				name: 'pkg1',
@@ -279,7 +279,7 @@ describe('package-manager', () => {
 				exitCode: 0,
 			});
 
-			const outdated = await getOutdated('pnpm', false);
+			const outdated = await getOutdated('pnpm');
 			expect(outdated).toHaveLength(1);
 			expect(outdated[0]!.name).toBe('pkg1');
 		});
@@ -291,7 +291,7 @@ describe('package-manager', () => {
 				exitCode: 0,
 			});
 
-			const outdated = await getOutdated('yarn', false);
+			const outdated = await getOutdated('yarn');
 			expect(outdated).toHaveLength(1);
 			expect(outdated[0]).toEqual({
 				name: 'pkg1',
@@ -308,7 +308,7 @@ describe('package-manager', () => {
 				stderr: '',
 				exitCode: 0,
 			});
-			const outdated = await getOutdated('yarn', false);
+			const outdated = await getOutdated('yarn');
 			expect(outdated).toHaveLength(1);
 		});
 
@@ -318,7 +318,7 @@ describe('package-manager', () => {
 				stderr: '',
 				exitCode: 0,
 			});
-			const outdated = await getOutdated('npm', false);
+			const outdated = await getOutdated('npm');
 			expect(outdated).toHaveLength(0);
 		});
 
@@ -328,7 +328,7 @@ describe('package-manager', () => {
 				stderr: '',
 				exitCode: 0,
 			});
-			const outdated = await getOutdated('yarn', false);
+			const outdated = await getOutdated('yarn');
 			expect(outdated).toHaveLength(0);
 		});
 
@@ -338,7 +338,7 @@ describe('package-manager', () => {
 				stderr: '',
 				exitCode: 1,
 			});
-			const outdated = await getOutdated('npm', false);
+			const outdated = await getOutdated('npm');
 			expect(outdated).toHaveLength(0);
 		});
 	});
@@ -494,6 +494,7 @@ describe('package-manager', () => {
 			const info = await getPackageInfo('npm', 'request');
 			expect(info).toEqual({
 				lastRelease: date,
+				latestReleaseDate: date,
 				deprecated: true,
 				deprecatedReason: reason,
 			});
@@ -531,6 +532,47 @@ describe('package-manager', () => {
 			});
 			const info = await getPackageInfo('yarn', 'pkg');
 			expect(info.lastRelease).toBe('2023-01-01T00:00:00.000Z');
+		});
+
+		it('should extract absolute latest version and release date', async () => {
+			const latestVersion = '2.0.0';
+			const latestDate = '2024-02-01T00:00:00.000Z';
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify({
+					version: latestVersion,
+					time: {
+						modified: '2024-02-10T00:00:00.000Z',
+						[latestVersion]: latestDate,
+					},
+				}),
+				stderr: '',
+				exitCode: 0,
+			});
+
+			const info = await getPackageInfo('npm', 'pkg');
+			expect(info.latestVersion).toBe(latestVersion);
+			expect(info.latestReleaseDate).toBe(latestDate);
+			expect(info.lastRelease).toBe(latestDate);
+		});
+
+		it('should parse yarn inspect payload shape', async () => {
+			vi.mocked(exec.runCommand).mockResolvedValue({
+				stdout: JSON.stringify({
+					type: 'inspect',
+					data: {
+						version: '1.2.3',
+						time: {
+							'1.2.3': '2024-03-01T00:00:00.000Z',
+						},
+					},
+				}),
+				stderr: '',
+				exitCode: 0,
+			});
+
+			const info = await getPackageInfo('yarn', 'pkg');
+			expect(info.latestVersion).toBe('1.2.3');
+			expect(info.latestReleaseDate).toBe('2024-03-01T00:00:00.000Z');
 		});
 
 		it('should handle error in getPackageInfo', async () => {

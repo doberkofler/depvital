@@ -29,7 +29,7 @@ export function normalizeRepoUrl(repoUrl: string): string | null {
 	// - git://github.com/user/repo.git
 	// - github:user/repo
 	// - user/repo (only if it looks like a user/repo)
-	const match = repoUrl.match(/(?:github\.com\/|github:|^)([^/]+\/[^/.]+)/);
+	const match = repoUrl.match(/(?:github\.com\/|github:|^)([^/]+\/[^/]+)/);
 	if (!match) {
 		return null;
 	}

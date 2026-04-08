@@ -32,7 +32,7 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 	debug('Using package manager: %s', pm);
 
 	debug('Fetching all dependencies, outdated packages and audit results...');
-	const [allDeps, outdated, audit] = await Promise.all([getDependencies(pm, config.includeDev), getOutdated(pm, config.includeDev), getAudit(pm)]);
+	const [allDeps, outdated, audit] = await Promise.all([getDependencies(pm), getOutdated(pm), getAudit(pm)]);
 	debug('Found %d total dependencies', allDeps.length);
 	debug('Found %d outdated packages', outdated.length);
 	debug('Found %d vulnerabilities', audit.vulnerabilities.length);
@@ -72,7 +72,7 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 		debug('Processing package: %s', pkg.name);
 		const cached = config.cache ? cache.get<Result>(pkg.name) : undefined;
 
-		if (cached && cached.current === pkg.current) {
+		if (cached && cached.current === pkg.current && typeof cached.latestAvailable !== 'undefined') {
 			debug('Cache hit for %s (version %s matches)', pkg.name, pkg.current);
 
 			// Recalculate time-based maintenance data from cached lastRelease date
@@ -81,17 +81,29 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 				const releaseDate = new Date(maintenance.lastRelease);
 				const now = new Date();
 				const diffTime = Math.abs(now.getTime() - releaseDate.getTime());
-				const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+				const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 				maintenance.daysSinceLastRelease = diffDays;
 				maintenance.isMaintained = diffDays <= config.maxAge;
 			}
+
+			let daysSinceLatestRelease = cached.daysSinceLatestRelease ?? null;
+			if (cached.latestReleaseDate) {
+				const releaseDate = new Date(cached.latestReleaseDate);
+				const now = new Date();
+				const diffTime = Math.abs(now.getTime() - releaseDate.getTime());
+				daysSinceLatestRelease = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+			}
+
+			const latestAvailable = pkg.latest !== pkg.current ? pkg.latest : (cached.latestAvailable ?? pkg.latest);
 
 			// Merge cached metadata with fresh update and audit info
 			const result: Result = {
 				...cached,
 				maintenance,
-				latest: pkg.latest,
-				outdated: pkg.current !== pkg.latest,
+				latest: latestAvailable,
+				latestAvailable,
+				daysSinceLatestRelease,
+				outdated: pkg.current !== latestAvailable,
 				isDev: pkg.isDev,
 				vulnerabilities: audit.vulnerabilities.filter((v) => v.package === pkg.name).map((v) => ({severity: v.severity, title: v.title})),
 			};
@@ -113,6 +125,15 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 		// Fallback for maintenance info: npm registry
 		debug('Fetching package info from registry for: %s', pkg.name);
 		const pkgInfo = await getPackageInfo(pm, pkg.name);
+		const latestAvailable = pkgInfo.latestVersion || pkg.latest;
+		const latestReleaseDate = pkgInfo.latestReleaseDate || null;
+		let daysSinceLatestRelease: number | null = null;
+		if (latestReleaseDate) {
+			const releaseDate = new Date(latestReleaseDate);
+			const now = new Date();
+			const diffTime = Math.abs(now.getTime() - releaseDate.getTime());
+			daysSinceLatestRelease = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+		}
 
 		debug('Resolving repository for: %s', pkg.name);
 		const repo = await resolvePackageRepo(pkg.name, process.cwd(), pkgInfo.repository);
@@ -128,7 +149,7 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 			const releaseDate = new Date(pkgInfo.lastRelease);
 			const now = new Date();
 			const diffTime = Math.abs(now.getTime() - releaseDate.getTime());
-			const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+			const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 			maintenance.daysSinceLastRelease = diffDays;
 			maintenance.isMaintained = diffDays <= config.maxAge;
 			// Initial health score based on recency only
@@ -145,7 +166,7 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 				const lastCommitDate = new Date(metadata.pushed_at);
 				const now = new Date();
 				const diffTime = Math.abs(now.getTime() - lastCommitDate.getTime());
-				const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+				const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
 				// GitHub is more precise for repo activity
 				maintenance = {
@@ -175,8 +196,11 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 		const result: Result = ResultSchema.parse({
 			package: pkg.name,
 			current: pkg.current,
-			latest: pkg.latest,
-			outdated: pkg.current !== pkg.latest,
+			latest: latestAvailable,
+			latestAvailable,
+			latestReleaseDate,
+			daysSinceLatestRelease,
+			outdated: pkg.current !== latestAvailable,
 			isDev: pkg.isDev,
 			vulnerabilities: audit.vulnerabilities.filter((v) => v.package === pkg.name).map((v) => ({severity: v.severity, title: v.title})),
 			deprecated: pkgInfo.deprecated,

@@ -2,10 +2,10 @@ import {describe, it, expect, vi, beforeEach} from 'vitest';
 import {Cache} from './cache.js';
 import {readFile, writeFile} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
-import type {Result} from '../types.js';
+import {type Result} from './types.js';
 
-vi.mock('node:fs');
-vi.mock('node:fs/promises');
+vi.mock(import('node:fs'));
+vi.mock(import('node:fs/promises'));
 
 const mockResult: Result = {
 	package: 'pkg1',
@@ -50,7 +50,14 @@ describe('Cache', () => {
 		await cache.save();
 
 		expect(writeFile).toHaveBeenCalled();
-		const content = vi.mocked(writeFile).mock.calls[0]![1] as string;
+		const [firstCall] = vi.mocked(writeFile).mock.calls;
+		if (!firstCall) {
+			throw new Error('writeFile should be called');
+		}
+		const [, content] = firstCall;
+		if (typeof content !== 'string') {
+			throw new TypeError('writeFile content should be a string');
+		}
 		expect(JSON.parse(content)).toEqual({pkg1: mockResult});
 	});
 

@@ -15,7 +15,17 @@ import createDebug from 'debug';
 
 const debug = createDebug('depvital:pm');
 
-export async function detectPackageManager(cwd: string = process.cwd()): Promise<'npm' | 'yarn' | 'pnpm'> {
+const normalizeSeverity = (value: unknown): AuditResult['vulnerabilities'][number]['severity'] => {
+	if (value === 'low' || value === 'moderate' || value === 'high' || value === 'critical') {
+		return value;
+	}
+
+	return 'moderate';
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+
+export const detectPackageManager = (cwd: string = process.cwd()): 'npm' | 'yarn' | 'pnpm' => {
 	debug('Detecting package manager in: %s', cwd);
 	if (existsSync(join(cwd, 'pnpm-lock.yaml'))) {
 		debug('Detected pnpm-lock.yaml');
@@ -27,9 +37,9 @@ export async function detectPackageManager(cwd: string = process.cwd()): Promise
 	}
 	debug('Defaulting to npm');
 	return 'npm';
-}
+};
 
-export async function getDependencies(pm: 'npm' | 'yarn' | 'pnpm'): Promise<PackageMetadata[]> {
+export const getDependencies = async (pm: 'npm' | 'yarn' | 'pnpm'): Promise<PackageMetadata[]> => {
 	const cwd = process.cwd();
 	const packageJsonPath = join(cwd, 'package.json');
 	const explicitDeps = new Set<string>();
@@ -61,7 +71,7 @@ export async function getDependencies(pm: 'npm' | 'yarn' | 'pnpm'): Promise<Pack
 		command = 'npm list --json --depth=0';
 	} else if (pm === 'pnpm') {
 		command = 'pnpm list --json --depth 0';
-	} else if (pm === 'yarn') {
+	} else {
 		command = 'yarn list --json --depth=0';
 	}
 
@@ -73,7 +83,7 @@ export async function getDependencies(pm: 'npm' | 'yarn' | 'pnpm'): Promise<Pack
 	}
 
 	try {
-		const json = JSON.parse(stdout);
+		const json: unknown = JSON.parse(stdout);
 		const parsed = PackageListSchema.parse(json);
 		const data = Array.isArray(parsed) ? parsed[0] : parsed;
 
@@ -82,8 +92,8 @@ export async function getDependencies(pm: 'npm' | 'yarn' | 'pnpm'): Promise<Pack
 		}
 
 		const results: PackageMetadata[] = [];
-		const deps = data.dependencies || {};
-		const devDeps = data.devDependencies || {};
+		const deps = data.dependencies ?? {};
+		const devDeps = data.devDependencies ?? {};
 
 		for (const [name, info] of Object.entries(deps)) {
 			if (explicitDeps.size > 0 && !explicitDeps.has(name)) {
@@ -93,9 +103,9 @@ export async function getDependencies(pm: 'npm' | 'yarn' | 'pnpm'): Promise<Pack
 
 			results.push({
 				name,
-				current: info.version || 'unknown',
-				wanted: info.version || 'unknown',
-				latest: info.version || 'unknown',
+				current: info.version ?? 'unknown',
+				wanted: info.version ?? 'unknown',
+				latest: info.version ?? 'unknown',
 				isDev: false,
 			});
 		}
@@ -108,9 +118,9 @@ export async function getDependencies(pm: 'npm' | 'yarn' | 'pnpm'): Promise<Pack
 
 			results.push({
 				name,
-				current: info.version || 'unknown',
-				wanted: info.version || 'unknown',
-				latest: info.version || 'unknown',
+				current: info.version ?? 'unknown',
+				wanted: info.version ?? 'unknown',
+				latest: info.version ?? 'unknown',
 				isDev: true,
 			});
 		}
@@ -121,15 +131,15 @@ export async function getDependencies(pm: 'npm' | 'yarn' | 'pnpm'): Promise<Pack
 		debug('Error parsing list output: %O', error);
 		return [];
 	}
-}
+};
 
-export async function getOutdated(pm: 'npm' | 'yarn' | 'pnpm'): Promise<PackageMetadata[]> {
+export const getOutdated = async (pm: 'npm' | 'yarn' | 'pnpm'): Promise<PackageMetadata[]> => {
 	let command = '';
 	if (pm === 'npm') {
 		command = 'npm outdated --json';
 	} else if (pm === 'pnpm') {
 		command = 'pnpm outdated --format json';
-	} else if (pm === 'yarn') {
+	} else {
 		command = 'yarn outdated --json';
 	}
 
@@ -152,10 +162,10 @@ export async function getOutdated(pm: 'npm' | 'yarn' | 'pnpm'): Promise<PackageM
 				if (data.success && data.data.type === 'table') {
 					debug('Found yarn outdated data table');
 					return data.data.data.body.map((row: string[]) => ({
-						name: row[0] || 'unknown',
-						current: row[1] || 'unknown',
-						wanted: row[2] || 'unknown',
-						latest: row[3] || 'unknown',
+						name: row[0] ?? 'unknown',
+						current: row[1] ?? 'unknown',
+						wanted: row[2] ?? 'unknown',
+						latest: row[3] ?? 'unknown',
 						isDev: false,
 					}));
 				}
@@ -165,13 +175,13 @@ export async function getOutdated(pm: 'npm' | 'yarn' | 'pnpm'): Promise<PackageM
 		}
 
 		debug('Parsing %s outdated output...', pm);
-		const json = JSON.parse(stdout);
+		const json: unknown = JSON.parse(stdout);
 		const data = NpmOutdatedSchema.parse(json);
 		const results = Object.entries(data).map(([name, info]) => ({
 			name,
-			current: info.current || 'unknown',
-			wanted: info.wanted || 'unknown',
-			latest: info.latest || 'unknown',
+			current: info.current ?? 'unknown',
+			wanted: info.wanted ?? 'unknown',
+			latest: info.latest ?? 'unknown',
 			isDev: info.type === 'devDependencies',
 		}));
 		debug('Successfully parsed %d outdated packages', results.length);
@@ -180,15 +190,15 @@ export async function getOutdated(pm: 'npm' | 'yarn' | 'pnpm'): Promise<PackageM
 		debug('Error parsing outdated output: %O', error);
 		return [];
 	}
-}
+};
 
-export async function getAudit(pm: 'npm' | 'yarn' | 'pnpm'): Promise<AuditResult> {
+export const getAudit = async (pm: 'npm' | 'yarn' | 'pnpm'): Promise<AuditResult> => {
 	let command = '';
 	if (pm === 'npm') {
 		command = 'npm audit --json';
 	} else if (pm === 'pnpm') {
 		command = 'pnpm audit --json';
-	} else if (pm === 'yarn') {
+	} else {
 		command = 'yarn audit --json';
 	}
 
@@ -204,33 +214,41 @@ export async function getAudit(pm: 'npm' | 'yarn' | 'pnpm'): Promise<AuditResult
 	try {
 		if (pm === 'npm' || pm === 'pnpm') {
 			debug('Parsing %s audit output...', pm);
-			const json = JSON.parse(stdout);
+			const json: unknown = JSON.parse(stdout);
 			const data = NpmAuditSchema.parse(json);
-			const advisories = data.advisories || data.vulnerabilities || {};
+			const advisories = data.advisories ?? data.vulnerabilities ?? {};
 
 			for (const id in advisories) {
+				if (!Object.hasOwn(advisories, id)) {
+					continue;
+				}
+
 				const adv = advisories[id];
 				if (!adv) {
 					continue;
 				}
 
-				const severity = adv.severity as any;
-				const pkg = adv.module_name || adv.name;
+				const severity = normalizeSeverity(adv.severity);
+				const moduleName = typeof adv.module_name === 'string' ? adv.module_name : undefined;
+				const advisoryName = typeof adv.name === 'string' ? adv.name : undefined;
+				const pkg = moduleName ?? advisoryName ?? '';
 
-				let title = adv.title;
-				if (!title && adv.via?.[0]) {
-					const via = adv.via[0];
+				const {title: advisoryTitle} = adv;
+				let title = advisoryTitle;
+				const firstVia = Array.isArray(adv.via) ? adv.via[0] : undefined;
+				if (title === undefined && firstVia !== undefined) {
+					const via = firstVia;
 					title = typeof via === 'string' ? via : via.title;
 				}
-				title = title || 'Vulnerability';
+				title = title ?? 'Vulnerability';
 
-				if (severity && pkg) {
+				if (pkg.length > 0) {
 					debug('Found vulnerability: %s for package %s', severity, pkg);
 					result.vulnerabilities.push({severity, title, package: pkg});
 				}
 			}
 			debug('Finished parsing audit output. Total vulnerabilities: %d', result.vulnerabilities.length);
-		} else if (pm === 'yarn') {
+		} else {
 			debug('Parsing yarn audit output...');
 			const lines = stdout.split('\n');
 			for (const line of lines) {
@@ -242,7 +260,7 @@ export async function getAudit(pm: 'npm' | 'yarn' | 'pnpm'): Promise<AuditResult
 					const adv = data.data.data.advisory;
 					debug('Found yarn vulnerability: %s for package %s', adv.severity, adv.module_name);
 					result.vulnerabilities.push({
-						severity: adv.severity as any,
+						severity: normalizeSeverity(adv.severity),
 						title: adv.title,
 						package: adv.module_name,
 					});
@@ -255,7 +273,7 @@ export async function getAudit(pm: 'npm' | 'yarn' | 'pnpm'): Promise<AuditResult
 	}
 
 	return result;
-}
+};
 
 export type PackageInfo = {
 	lastRelease: string | null;
@@ -266,13 +284,50 @@ export type PackageInfo = {
 	latestReleaseDate?: string;
 };
 
-export async function getPackageInfo(pm: 'npm' | 'yarn' | 'pnpm', packageName: string): Promise<PackageInfo> {
+const normalizePackageInfoPayload = (info: unknown): Record<string, unknown> => {
+	if (isRecord(info)) {
+		const candidate = info;
+		const {data} = candidate;
+		if (isRecord(data)) {
+			return data;
+		}
+
+		return candidate;
+	}
+
+	return {};
+};
+
+const resolveLatestReleaseDate = (info: Record<string, unknown>, latestVersion?: string): string | null => {
+	const timeValue = info['time'];
+	if (typeof latestVersion === 'string' && isRecord(timeValue)) {
+		const latestDate = timeValue[latestVersion];
+		if (typeof latestDate === 'string') {
+			return latestDate;
+		}
+	}
+
+	if (typeof info['time.modified'] === 'string') {
+		return info['time.modified'];
+	}
+
+	if (isRecord(timeValue)) {
+		const {modified} = timeValue;
+		if (typeof modified === 'string') {
+			return modified;
+		}
+	}
+
+	return null;
+};
+
+export const getPackageInfo = async (pm: 'npm' | 'yarn' | 'pnpm', packageName: string): Promise<PackageInfo> => {
 	let command = '';
 	if (pm === 'npm') {
 		command = `npm view ${packageName} time version deprecated repository --json`;
 	} else if (pm === 'pnpm') {
 		command = `pnpm view ${packageName} time version deprecated repository --json`;
-	} else if (pm === 'yarn') {
+	} else {
 		command = `yarn info ${packageName} time version deprecated repository --json`;
 	}
 
@@ -282,7 +337,7 @@ export async function getPackageInfo(pm: 'npm' | 'yarn' | 'pnpm', packageName: s
 		if (!stdout.trim()) {
 			return {lastRelease: null, deprecated: false};
 		}
-		const info = JSON.parse(stdout);
+		const info: unknown = JSON.parse(stdout);
 
 		if (typeof info === 'string') {
 			return {lastRelease: info, deprecated: false};
@@ -295,22 +350,28 @@ export async function getPackageInfo(pm: 'npm' | 'yarn' | 'pnpm', packageName: s
 
 		const result: PackageInfo = {
 			lastRelease: latestReleaseDate,
-			deprecated: !!payload['deprecated'],
+			deprecated: Boolean(payload['deprecated']),
 		};
 
-		if (deprecatedReason) {
+		if (typeof deprecatedReason === 'string' && deprecatedReason.length > 0) {
 			result.deprecatedReason = deprecatedReason;
 		}
 
-		if (payload['repository']) {
-			result.repository = payload['repository'];
+		const {repository} = payload;
+		if (typeof repository === 'string') {
+			result.repository = repository;
+		} else if (isRecord(repository)) {
+			const repositoryUrl = repository['url'];
+			if (typeof repositoryUrl === 'string') {
+				result.repository = {url: repositoryUrl};
+			}
 		}
 
-		if (latestVersion) {
+		if (typeof latestVersion === 'string' && latestVersion.length > 0) {
 			result.latestVersion = latestVersion;
 		}
 
-		if (latestReleaseDate) {
+		if (latestReleaseDate !== null) {
 			result.latestReleaseDate = latestReleaseDate;
 		}
 
@@ -319,43 +380,9 @@ export async function getPackageInfo(pm: 'npm' | 'yarn' | 'pnpm', packageName: s
 		debug('Error fetching package info for %s: %O', packageName, error);
 		return {lastRelease: null, deprecated: false};
 	}
-}
+};
 
-function normalizePackageInfoPayload(info: unknown): Record<string, any> {
-	if (info && typeof info === 'object') {
-		const candidate = info as Record<string, any>;
-		if (candidate['data'] && typeof candidate['data'] === 'object') {
-			return candidate['data'] as Record<string, any>;
-		}
-		return candidate;
-	}
-	return {};
-}
-
-function resolveLatestReleaseDate(info: Record<string, any>, latestVersion?: string): string | null {
-	if (latestVersion && info['time'] && typeof info['time'] === 'object') {
-		const time = info['time'] as Record<string, unknown>;
-		const latestDate = time[latestVersion];
-		if (typeof latestDate === 'string') {
-			return latestDate;
-		}
-	}
-
-	if (typeof info['time.modified'] === 'string') {
-		return info['time.modified'];
-	}
-
-	if (info['time'] && typeof info['time'] === 'object') {
-		const modified = (info['time'] as Record<string, unknown>)['modified'];
-		if (typeof modified === 'string') {
-			return modified;
-		}
-	}
-
-	return null;
-}
-
-export async function updatePackages(pm: 'npm' | 'yarn' | 'pnpm', packages: {name: string; version: string; isDev: boolean}[]) {
+export const updatePackages = async (pm: 'npm' | 'yarn' | 'pnpm', packages: {name: string; version: string; isDev: boolean}[]): Promise<void> => {
 	if (packages.length === 0) {
 		return;
 	}
@@ -363,7 +390,7 @@ export async function updatePackages(pm: 'npm' | 'yarn' | 'pnpm', packages: {nam
 	const deps = packages.filter((p) => !p.isDev);
 	const devDeps = packages.filter((p) => p.isDev);
 
-	const execute = async (pkgs: typeof packages, isDev: boolean) => {
+	const execute = async (pkgs: typeof packages, isDev: boolean): Promise<void> => {
 		if (pkgs.length === 0) {
 			return;
 		}
@@ -375,7 +402,7 @@ export async function updatePackages(pm: 'npm' | 'yarn' | 'pnpm', packages: {nam
 			command = `npm install ${pkgList} ${isDev ? '--save-dev' : '--save'}`;
 		} else if (pm === 'pnpm') {
 			command = `pnpm add ${pkgList} ${isDev ? '-D' : ''}`;
-		} else if (pm === 'yarn') {
+		} else {
 			command = `yarn add ${pkgList} ${isDev ? '--dev' : ''}`;
 		}
 
@@ -386,4 +413,4 @@ export async function updatePackages(pm: 'npm' | 'yarn' | 'pnpm', packages: {nam
 
 	await execute(deps, false);
 	await execute(devDeps, true);
-}
+};

@@ -1,6 +1,6 @@
 import {detectPackageManager, getDependencies, getOutdated, getAudit, getPackageInfo} from './package-manager.js';
 import {resolvePackageRepo, fetchGitHubMetadata, fetchChangelog, type GitHubMetadata} from './github.js';
-import {Cache} from './utils/cache.js';
+import {Cache} from './cache.js';
 import {ConfigSchema, ResultSchema, type Config, type Result} from './types.js';
 import createDebug from 'debug';
 
@@ -23,12 +23,20 @@ export type AnalysisResult = {
 	};
 };
 
-export async function analyze(configInput: Config, onProgress?: ProgressCallback): Promise<AnalysisResult> {
+const calculateHealthScore = (metadata: GitHubMetadata, diffDays: number): number => {
+	const recencyScore = Math.max(0, (365 - diffDays) / 365) * 0.5;
+	const starsScore = Math.min(1, metadata.stargazers_count / 1000) * 0.3;
+	const issuesScore = Math.max(0, 1 - metadata.open_issues_count / 100) * 0.2;
+
+	return Math.min(1, Math.max(0, recencyScore + starsScore + issuesScore));
+};
+
+export const analyze = async (configInput: Config, onProgress?: ProgressCallback): Promise<AnalysisResult> => {
 	const startTime = Date.now();
 	debug('Analyzing with input config: %O', configInput);
 	const config = ConfigSchema.parse(configInput);
 
-	const pm = config.packageManager || (await detectPackageManager());
+	const pm = config.packageManager ?? detectPackageManager();
 	debug('Using package manager: %s', pm);
 
 	debug('Fetching all dependencies, outdated packages and audit results...');
@@ -70,14 +78,14 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 			onProgress(current, total);
 		}
 		debug('Processing package: %s', pkg.name);
-		const cached = config.cache ? cache.get<Result>(pkg.name) : undefined;
+		const cached = config.cache ? cache.get(pkg.name) : undefined;
 
 		if (cached && cached.current === pkg.current && typeof cached.latestAvailable !== 'undefined') {
 			debug('Cache hit for %s (version %s matches)', pkg.name, pkg.current);
 
 			// Recalculate time-based maintenance data from cached lastRelease date
 			const maintenance = {...cached.maintenance};
-			if (maintenance.lastRelease) {
+			if (typeof maintenance.lastRelease === 'string') {
 				const releaseDate = new Date(maintenance.lastRelease);
 				const now = new Date();
 				const diffTime = Math.abs(now.getTime() - releaseDate.getTime());
@@ -87,7 +95,7 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 			}
 
 			let daysSinceLatestRelease = cached.daysSinceLatestRelease ?? null;
-			if (cached.latestReleaseDate) {
+			if (typeof cached.latestReleaseDate === 'string') {
 				const releaseDate = new Date(cached.latestReleaseDate);
 				const now = new Date();
 				const diffTime = Math.abs(now.getTime() - releaseDate.getTime());
@@ -124,11 +132,12 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 
 		// Fallback for maintenance info: npm registry
 		debug('Fetching package info from registry for: %s', pkg.name);
+		// eslint-disable-next-line eslint/no-await-in-loop -- intentional sequential processing for stable progress and lower API pressure
 		const pkgInfo = await getPackageInfo(pm, pkg.name);
-		const latestAvailable = pkgInfo.latestVersion || pkg.latest;
-		const latestReleaseDate = pkgInfo.latestReleaseDate || null;
+		const latestAvailable = pkgInfo.latestVersion ?? pkg.latest;
+		const latestReleaseDate = pkgInfo.latestReleaseDate ?? null;
 		let daysSinceLatestRelease: number | null = null;
-		if (latestReleaseDate) {
+		if (latestReleaseDate !== null) {
 			const releaseDate = new Date(latestReleaseDate);
 			const now = new Date();
 			const diffTime = Math.abs(now.getTime() - releaseDate.getTime());
@@ -136,6 +145,7 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 		}
 
 		debug('Resolving repository for: %s', pkg.name);
+		// eslint-disable-next-line eslint/no-await-in-loop -- intentional sequential processing for stable progress and lower API pressure
 		const repo = await resolvePackageRepo(pkg.name, process.cwd(), pkgInfo.repository);
 
 		let maintenance: Result['maintenance'] = {
@@ -145,7 +155,7 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 			healthScore: null,
 		};
 
-		if (pkgInfo.lastRelease) {
+		if (pkgInfo.lastRelease !== null) {
 			const releaseDate = new Date(pkgInfo.lastRelease);
 			const now = new Date();
 			const diffTime = Math.abs(now.getTime() - releaseDate.getTime());
@@ -158,9 +168,10 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 
 		let changelog: Result['changelog'] = {found: false, latestEntry: null};
 
-		if (repo) {
+		if (repo !== null) {
 			debug('Resolved repo for %s: %s', pkg.name, repo);
 			debug('Fetching GitHub metadata for: %s', repo);
+			// eslint-disable-next-line eslint/no-await-in-loop -- intentional sequential processing for stable progress and lower API pressure
 			const metadata = await fetchGitHubMetadata(repo, config.githubToken);
 			if (metadata) {
 				const lastCommitDate = new Date(metadata.pushed_at);
@@ -187,6 +198,7 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 			}
 
 			debug('Fetching changelog for: %s', repo);
+			// eslint-disable-next-line eslint/no-await-in-loop -- intentional sequential processing for stable progress and lower API pressure
 			changelog = await fetchChangelog(repo, config.githubToken);
 			debug('Changelog status for %s: %s', pkg.name, changelog.found ? 'Found' : 'Not Found');
 		} else {
@@ -205,7 +217,7 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 			vulnerabilities: audit.vulnerabilities.filter((v) => v.package === pkg.name).map((v) => ({severity: v.severity, title: v.title})),
 			deprecated: pkgInfo.deprecated,
 			maintenance,
-			githubUrl: repo ? `https://github.com/${repo}` : null,
+			githubUrl: repo !== null ? `https://github.com/${repo}` : null,
 			changelog,
 		});
 
@@ -233,13 +245,4 @@ export async function analyze(configInput: Config, onProgress?: ProgressCallback
 	};
 
 	return {results, githubRateLimitHit, stats};
-}
-
-function calculateHealthScore(metadata: GitHubMetadata, diffDays: number): number {
-	// Simple scoring logic: recency (50%), stars (30%), issues (20%)
-	const recencyScore = Math.max(0, (365 - diffDays) / 365) * 0.5;
-	const starsScore = Math.min(1, metadata.stargazers_count / 1000) * 0.3;
-	const issuesScore = Math.max(0, 1 - metadata.open_issues_count / 100) * 0.2;
-
-	return Math.min(1, Math.max(0, recencyScore + starsScore + issuesScore));
-}
+};

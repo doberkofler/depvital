@@ -3,8 +3,8 @@ import {detectPackageManager, getDependencies, getOutdated, getAudit, getPackage
 import {existsSync, readFileSync} from 'node:fs';
 import * as exec from './utils/exec.js';
 
-vi.mock('node:fs');
-vi.mock('./utils/exec.js');
+vi.mock(import('node:fs'));
+vi.mock(import('./utils/exec.js'));
 
 describe('package-manager', () => {
 	beforeEach(() => {
@@ -12,21 +12,21 @@ describe('package-manager', () => {
 	});
 
 	describe('detectPackageManager', () => {
-		it('should detect pnpm', async () => {
-			vi.mocked(existsSync).mockImplementation((path: any) => path.endsWith('pnpm-lock.yaml'));
-			const pm = await detectPackageManager();
+		it('should detect pnpm', () => {
+			vi.mocked(existsSync).mockImplementation((path) => String(path).endsWith('pnpm-lock.yaml'));
+			const pm = detectPackageManager();
 			expect(pm).toBe('pnpm');
 		});
 
-		it('should detect yarn', async () => {
-			vi.mocked(existsSync).mockImplementation((path: any) => path.endsWith('yarn.lock'));
-			const pm = await detectPackageManager();
+		it('should detect yarn', () => {
+			vi.mocked(existsSync).mockImplementation((path) => String(path).endsWith('yarn.lock'));
+			const pm = detectPackageManager();
 			expect(pm).toBe('yarn');
 		});
 
-		it('should fallback to npm', async () => {
+		it('should fallback to npm', () => {
 			vi.mocked(existsSync).mockReturnValue(false);
-			const pm = await detectPackageManager();
+			const pm = detectPackageManager();
 			expect(pm).toBe('npm');
 		});
 	});
@@ -112,7 +112,11 @@ describe('package-manager', () => {
 
 			const deps = await getDependencies('pnpm');
 			expect(deps).toHaveLength(1);
-			expect(deps[0]!.name).toBe('pkg1');
+			const [firstDep] = deps;
+			if (!firstDep) {
+				throw new Error('dependency should exist');
+			}
+			expect(firstDep.name).toBe('pkg1');
 		});
 
 		it('should parse npm list with dev dependencies', async () => {
@@ -179,7 +183,11 @@ describe('package-manager', () => {
 
 			const deps = await getDependencies('pnpm');
 			expect(deps).toHaveLength(1);
-			expect(deps[0]!.name).toBe('pkg1');
+			const [firstDep] = deps;
+			if (!firstDep) {
+				throw new Error('dependency should exist');
+			}
+			expect(firstDep.name).toBe('pkg1');
 		});
 
 		it('should parse yarn list json', async () => {
@@ -197,7 +205,11 @@ describe('package-manager', () => {
 
 			const deps = await getDependencies('yarn');
 			expect(deps).toHaveLength(1);
-			expect(deps[0]!.name).toBe('pkg1');
+			const [firstDep] = deps;
+			if (!firstDep) {
+				throw new Error('dependency should exist');
+			}
+			expect(firstDep.name).toBe('pkg1');
 		});
 
 		it('should handle error reading package.json', async () => {
@@ -281,12 +293,18 @@ describe('package-manager', () => {
 
 			const outdated = await getOutdated('pnpm');
 			expect(outdated).toHaveLength(1);
-			expect(outdated[0]!.name).toBe('pkg1');
+			const [firstOutdated] = outdated;
+			if (!firstOutdated) {
+				throw new Error('outdated package should exist');
+			}
+			expect(firstOutdated.name).toBe('pkg1');
 		});
 
 		it('should parse yarn outdated json', async () => {
+			const tableLine = JSON.stringify({type: 'table', data: {body: [['pkg1', '1.0.0', '1.1.0', '2.0.0', 'dependencies']]}});
+			const otherLine = JSON.stringify({type: 'other'});
 			vi.mocked(exec.runCommand).mockResolvedValue({
-				stdout: JSON.stringify({type: 'table', data: {body: [['pkg1', '1.0.0', '1.1.0', '2.0.0', 'dependencies']]}}) + '\n' + JSON.stringify({type: 'other'}),
+				stdout: `${tableLine}\n${otherLine}`,
 				stderr: '',
 				exitCode: 0,
 			});
@@ -303,8 +321,9 @@ describe('package-manager', () => {
 		});
 
 		it('should handle yarn outdated with empty line', async () => {
+			const tableLine = JSON.stringify({type: 'table', data: {body: [['pkg1', '1.0.0', '1.1.0', '2.0.0', 'dependencies']]}});
 			vi.mocked(exec.runCommand).mockResolvedValue({
-				stdout: '\n' + JSON.stringify({type: 'table', data: {body: [['pkg1', '1.0.0', '1.1.0', '2.0.0', 'dependencies']]}}),
+				stdout: `\n${tableLine}`,
 				stderr: '',
 				exitCode: 0,
 			});
@@ -401,7 +420,11 @@ describe('package-manager', () => {
 
 			const audit = await getAudit('pnpm');
 			expect(audit.vulnerabilities).toHaveLength(1);
-			expect(audit.vulnerabilities[0]!.title).toBe('Via Title');
+			const [firstVulnerability] = audit.vulnerabilities;
+			if (!firstVulnerability) {
+				throw new Error('vulnerability should exist');
+			}
+			expect(firstVulnerability.title).toBe('Via Title');
 		});
 
 		it('should handle string via in pnpm/npm audit', async () => {
@@ -417,7 +440,11 @@ describe('package-manager', () => {
 
 			const audit = await getAudit('pnpm');
 			expect(audit.vulnerabilities).toHaveLength(1);
-			expect(audit.vulnerabilities[0]!.title).toBe('String Via');
+			const [firstVulnerability] = audit.vulnerabilities;
+			if (!firstVulnerability) {
+				throw new Error('vulnerability should exist');
+			}
+			expect(firstVulnerability.title).toBe('String Via');
 		});
 
 		it('should parse yarn audit json', async () => {
@@ -442,8 +469,9 @@ describe('package-manager', () => {
 		});
 
 		it('should handle yarn audit with empty line', async () => {
+			const advisoryLine = JSON.stringify({type: 'auditAdvisory', data: {advisory: {severity: 'low', module_name: 'pkg1', title: 'Vuln'}}});
 			vi.mocked(exec.runCommand).mockResolvedValue({
-				stdout: '\n' + JSON.stringify({type: 'auditAdvisory', data: {advisory: {severity: 'low', module_name: 'pkg1', title: 'Vuln'}}}),
+				stdout: `\n${advisoryLine}`,
 				stderr: '',
 				exitCode: 0,
 			});
@@ -622,8 +650,7 @@ describe('package-manager', () => {
 		it('should update only dev packages', async () => {
 			const spy = vi.spyOn(exec, 'runCommand').mockResolvedValue({stdout: '', stderr: '', exitCode: 0});
 			await updatePackages('npm', [{name: 'pkg1', version: '1.0.0', isDev: true}]);
-			expect(spy).toHaveBeenCalledOnce();
-			expect(spy).toHaveBeenCalledWith('npm install pkg1@1.0.0 --save-dev');
+			expect(spy).toHaveBeenCalledExactlyOnceWith('npm install pkg1@1.0.0 --save-dev');
 		});
 	});
 });

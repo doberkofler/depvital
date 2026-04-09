@@ -2,12 +2,12 @@ import {describe, it, expect, vi, beforeEach} from 'vitest';
 import {analyze, type ProgressCallback} from './analyzer.js';
 import * as pm from './package-manager.js';
 import * as github from './github.js';
-import {Cache} from './utils/cache.js';
-import type {Config} from './types.js';
+import {Cache} from './cache.js';
+import {type Config} from './types.js';
 
-vi.mock('./package-manager.js');
-vi.mock('./github.js');
-vi.mock('./utils/cache.js');
+vi.mock(import('./package-manager.js'));
+vi.mock(import('./github.js'));
+vi.mock(import('./cache.js'));
 
 describe('analyzer', () => {
 	beforeEach(() => {
@@ -77,16 +77,22 @@ describe('analyzer', () => {
 		expect(results).toHaveLength(2);
 
 		// pkg1 should be outdated
-		const res1 = results.find((r: any) => r.package === 'pkg1');
-		expect(res1?.outdated).toBe(true);
-		expect(res1?.latest).toBe('2.0.0');
-		expect(res1?.githubUrl).toBe('https://github.com/user/repo');
+		const res1 = results.find((r) => r.package === 'pkg1');
+		if (!res1) {
+			throw new Error('pkg1 result should exist');
+		}
+		expect(res1).toMatchObject({outdated: true});
+		expect(res1.latest).toBe('2.0.0');
+		expect(res1.githubUrl).toBe('https://github.com/user/repo');
 
 		// pkg2 should have vulnerability
-		const res2 = results.find((r: any) => r.package === 'pkg2');
-		expect(res2?.vulnerabilities).toHaveLength(1);
-		expect(res2?.outdated).toBe(false);
-		expect(res2?.githubUrl).toBe('https://github.com/user/repo');
+		const res2 = results.find((r) => r.package === 'pkg2');
+		if (!res2) {
+			throw new Error('pkg2 result should exist');
+		}
+		expect(res2.vulnerabilities).toHaveLength(1);
+		expect(res2).toMatchObject({outdated: false});
+		expect(res2.githubUrl).toBe('https://github.com/user/repo');
 	});
 
 	it('should use cache if enabled', async () => {
@@ -146,7 +152,11 @@ describe('analyzer', () => {
 		expect(getSpy).toHaveBeenCalledWith('pkg1');
 
 		// Verify recalculation of daysSinceLastRelease
-		expect(results[0]?.maintenance.daysSinceLastRelease).toBeGreaterThanOrEqual(10);
+		const [firstResult] = results;
+		if (!firstResult) {
+			throw new Error('result should exist');
+		}
+		expect(firstResult.maintenance.daysSinceLastRelease).toBeGreaterThanOrEqual(10);
 	});
 
 	it('should mark package outdated using absolute latest from registry info', async () => {
@@ -174,9 +184,13 @@ describe('analyzer', () => {
 
 		const {results} = await analyze(config);
 		expect(results).toHaveLength(1);
-		expect(results[0]?.latest).toBe('1.1.0');
-		expect(results[0]?.outdated).toBe(true);
-		expect(results[0]?.daysSinceLatestRelease).not.toBeNull();
+		const [firstResult] = results;
+		if (!firstResult) {
+			throw new Error('result should exist');
+		}
+		expect(firstResult.latest).toBe('1.1.0');
+		expect(firstResult).toMatchObject({outdated: true});
+		expect(firstResult.daysSinceLatestRelease).not.toBeNull();
 	});
 
 	it('should invalidate cache if version changed', async () => {
@@ -220,7 +234,11 @@ describe('analyzer', () => {
 
 		const {results, stats} = await analyze(config);
 		expect(results).toHaveLength(1);
-		expect(results[0]?.current).toBe('2.0.0');
+		const [firstResult] = results;
+		if (!firstResult) {
+			throw new Error('result should exist');
+		}
+		expect(firstResult.current).toBe('2.0.0');
 		expect(stats.cacheHits).toBe(0);
 		expect(stats.cacheMisses).toBe(1);
 	});
@@ -251,6 +269,7 @@ describe('analyzer', () => {
 			current: '1.0.0',
 			latest: '1.0.0',
 			latestAvailable: '1.0.0',
+			isDev: false,
 			outdated: false, // Stale outdated info in cache
 			vulnerabilities: [], // Stale security info in cache
 			maintenance: {isMaintained: true, healthScore: 0.9, lastRelease: null, daysSinceLastRelease: null},
@@ -271,10 +290,18 @@ describe('analyzer', () => {
 		const {results, stats} = await analyze(config);
 		expect(results).toHaveLength(1);
 		expect(stats.cacheHits).toBe(1);
-		expect(results[0]?.outdated).toBe(true);
-		expect(results[0]?.latest).toBe('1.1.0');
-		expect(results[0]?.vulnerabilities).toHaveLength(1);
-		expect(results[0]?.vulnerabilities[0]?.severity).toBe('critical');
+		const [firstResult] = results;
+		if (!firstResult) {
+			throw new Error('result should exist');
+		}
+		expect(firstResult).toMatchObject({outdated: true});
+		expect(firstResult.latest).toBe('1.1.0');
+		expect(firstResult.vulnerabilities).toHaveLength(1);
+		const [firstVulnerability] = firstResult.vulnerabilities;
+		if (!firstVulnerability) {
+			throw new Error('vulnerability should exist');
+		}
+		expect(firstVulnerability.severity).toBe('critical');
 	});
 
 	it('should update cache after analysis', async () => {
@@ -349,6 +376,6 @@ describe('analyzer', () => {
 
 		const config: Config = {json: false, debug: false, maxAge: 180, cache: false, progress: false, update: false, minReleaseAge: 3};
 		const {githubRateLimitHit} = await analyze(config);
-		expect(githubRateLimitHit).toBe(true);
+		expect({githubRateLimitHit}).toMatchObject({githubRateLimitHit: true});
 	});
 });

@@ -68,7 +68,8 @@ export const linter = defineConfig({
 		'jest/prefer-called-with': 'off', // FIXME: remove all jest rules
 		'jest/prefer-lowercase-title': 'off', // FIXME: remove all jest rules
 		'jest/prefer-strict-equal': 'off', // FIXME: remove all jest rules
-		'jest/require-hook': 'off',
+		'jest/prefer-to-be': 'off', // FIXME: remove all jest rules
+		'jest/require-hook': 'off', // FIXME: remove all jest rules
 		'oxc/no-async-await': 'off',
 		'oxc/no-map-spread': 'off', // TODO: consider enabling
 		'oxc/no-rest-spread-properties': 'off',

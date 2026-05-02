@@ -190,7 +190,7 @@ describe('github', () => {
 
 			// Last fetch is releases API
 			fetchMock.mockImplementation(async (url) => {
-				let requestUrl = '';
+				let requestUrl: string;
 				if (url instanceof URL) {
 					requestUrl = url.toString();
 				} else if (typeof url === 'string') {

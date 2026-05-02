@@ -123,7 +123,7 @@ program
 										name: `${r.package} (${r.current} -> ${r.latest})`,
 										value: r,
 									})),
-							  })
+								})
 							: outdated;
 
 					if (selected.length > 0) {

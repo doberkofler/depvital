@@ -13,12 +13,12 @@ export class Cache {
 	private readonly cachePath: string;
 	private data: z.infer<typeof CacheDataSchema> = {};
 
-	constructor(cwd: string = process.cwd()) {
+	public constructor(cwd: string = process.cwd()) {
 		this.cachePath = join(cwd, CACHE_FILE);
 		debug('Cache path set to: %s', this.cachePath);
 	}
 
-	async load(): Promise<void> {
+	public async load(): Promise<void> {
 		if (existsSync(this.cachePath)) {
 			debug('Loading cache file: %s', this.cachePath);
 			try {
@@ -41,7 +41,7 @@ export class Cache {
 		}
 	}
 
-	async save(): Promise<void> {
+	public async save(): Promise<void> {
 		debug('Saving cache file: %s', this.cachePath);
 		try {
 			await writeFile(this.cachePath, JSON.stringify(this.data, null, 2), 'utf8');
@@ -51,7 +51,7 @@ export class Cache {
 		}
 	}
 
-	get(key: string): z.infer<typeof ResultSchema> | undefined {
+	public get(key: string): z.infer<typeof ResultSchema> | undefined {
 		const result = this.data[key];
 		if (result) {
 			debug('Cache hit for: %s', key);
@@ -61,7 +61,7 @@ export class Cache {
 		return result;
 	}
 
-	set(key: string, value: unknown): void {
+	public set(key: string, value: unknown): void {
 		const parsed = ResultSchema.safeParse(value);
 		if (parsed.success) {
 			debug('Setting cache entry for: %s', key);
@@ -71,7 +71,7 @@ export class Cache {
 		}
 	}
 
-	clear(): void {
+	public clear(): void {
 		debug('Clearing cache');
 		this.data = {};
 	}

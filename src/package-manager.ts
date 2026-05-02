@@ -15,6 +15,24 @@ import createDebug from 'debug';
 
 const debug = createDebug('depvital:pm');
 
+const listCommands: Record<'npm' | 'pnpm' | 'yarn', string> = {
+	npm: 'npm list --json --depth=0',
+	pnpm: 'pnpm list --json --depth 0',
+	yarn: 'yarn list --json --depth=0',
+};
+
+const outdatedCommands: Record<'npm' | 'pnpm' | 'yarn', string> = {
+	npm: 'npm outdated --json',
+	pnpm: 'pnpm outdated --format json',
+	yarn: 'yarn outdated --json',
+};
+
+const auditCommands: Record<'npm' | 'pnpm' | 'yarn', string> = {
+	npm: 'npm audit --json',
+	pnpm: 'pnpm audit --json',
+	yarn: 'yarn audit --json',
+};
+
 const normalizeSeverity = (value: unknown): AuditResult['vulnerabilities'][number]['severity'] => {
 	if (value === 'low' || value === 'moderate' || value === 'high' || value === 'critical') {
 		return value;
@@ -66,14 +84,7 @@ export const getDependencies = async (pm: 'npm' | 'yarn' | 'pnpm'): Promise<Pack
 		}
 	}
 
-	let command = '';
-	if (pm === 'npm') {
-		command = 'npm list --json --depth=0';
-	} else if (pm === 'pnpm') {
-		command = 'pnpm list --json --depth 0';
-	} else {
-		command = 'yarn list --json --depth=0';
-	}
+	const command = listCommands[pm];
 
 	debug('Executing list command: %s', command);
 	const {stdout} = await runCommand(command);
@@ -134,14 +145,7 @@ export const getDependencies = async (pm: 'npm' | 'yarn' | 'pnpm'): Promise<Pack
 };
 
 export const getOutdated = async (pm: 'npm' | 'yarn' | 'pnpm'): Promise<PackageMetadata[]> => {
-	let command = '';
-	if (pm === 'npm') {
-		command = 'npm outdated --json';
-	} else if (pm === 'pnpm') {
-		command = 'pnpm outdated --format json';
-	} else {
-		command = 'yarn outdated --json';
-	}
+	const command = outdatedCommands[pm];
 
 	debug('Executing outdated command: %s', command);
 	const {stdout} = await runCommand(command);
@@ -193,14 +197,7 @@ export const getOutdated = async (pm: 'npm' | 'yarn' | 'pnpm'): Promise<PackageM
 };
 
 export const getAudit = async (pm: 'npm' | 'yarn' | 'pnpm'): Promise<AuditResult> => {
-	let command = '';
-	if (pm === 'npm') {
-		command = 'npm audit --json';
-	} else if (pm === 'pnpm') {
-		command = 'pnpm audit --json';
-	} else {
-		command = 'yarn audit --json';
-	}
+	const command = auditCommands[pm];
 
 	debug('Executing audit command: %s', command);
 	const {stdout} = await runCommand(command);
@@ -322,7 +319,7 @@ const resolveLatestReleaseDate = (info: Record<string, unknown>, latestVersion?:
 };
 
 export const getPackageInfo = async (pm: 'npm' | 'yarn' | 'pnpm', packageName: string): Promise<PackageInfo> => {
-	let command = '';
+	let command: string;
 	if (pm === 'npm') {
 		command = `npm view ${packageName} time version deprecated repository --json`;
 	} else if (pm === 'pnpm') {
@@ -395,9 +392,8 @@ export const updatePackages = async (pm: 'npm' | 'yarn' | 'pnpm', packages: {nam
 			return;
 		}
 
-		let command = '';
 		const pkgList = pkgs.map((p) => `${p.name}@${p.version}`).join(' ');
-
+		let command: string;
 		if (pm === 'npm') {
 			command = `npm install ${pkgList} ${isDev ? '--save-dev' : '--save'}`;
 		} else if (pm === 'pnpm') {

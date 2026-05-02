@@ -1,3 +1,11 @@
+# [0.6.0](https://github.com/doberkofler/depvital/compare/v0.5.0...v0.6.0) (2026-05-02)
+
+
+### Features
+
+* add commands check, update-auto and update-manual ([490ceb9](https://github.com/doberkofler/depvital/commit/490ceb93c8eb20d7a1f2147427257f5201e33905))
+* add commands check, update-auto and update-manual ([9e2a0df](https://github.com/doberkofler/depvital/commit/9e2a0df2fbb9aaa59ba539f8d5b09c975b6a0fc6))
+
 # [0.5.0](https://github.com/doberkofler/depvital/compare/v0.4.0...v0.5.0) (2026-04-08)
 
 

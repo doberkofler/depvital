@@ -14,4 +14,4 @@ Build/Lint/Test:
 - Caching is used by default to avoid GitHub API rate limits.
 - Use `--debug` to see the internal execution steps and Zod validation results.
 - Use `--no-progress` to suppress the progress bar.
-- Use `--update` to interactively select and update outdated dependencies.
+- Use `update-manual` to interactively select and update outdated dependencies.

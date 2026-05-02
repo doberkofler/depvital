@@ -42,31 +42,31 @@
 		"prepare": "husky",
 		"dev": "vite build --watch",
 		"build": "vite build",
-		"integration-test": "node -e \"\""
+		"integration-test": "pnpm run build && node dist/index.js"
 	},
 	"dependencies": {
-		"@inquirer/prompts": "8.3.2",
+		"@inquirer/prompts": "8.4.2",
 		"cli-progress": "3.12.0",
 		"commander": "14.0.3",
 		"debug": "4.4.3",
 		"zod": "4.3.6"
 	},
 	"devDependencies": {
-		"@commitlint/cli": "20.5.0",
+		"@commitlint/cli": "20.5.2",
 		"@commitlint/config-conventional": "20.5.0",
 		"@types/cli-progress": "3.11.6",
 		"@types/debug": "4.1.13",
-		"@types/node": "25.5.2",
-		"@vitest/coverage-v8": "4.1.2",
+		"@types/node": "25.6.0",
+		"@vitest/coverage-v8": "4.1.5",
 		"conventional-changelog": "7.2.0",
 		"eslint-plugin-regexp": "3.1.0",
 		"husky": "9.1.7",
-		"oxfmt": "0.43.0",
-		"oxlint": "1.58.0",
-		"oxlint-tsgolint": "0.19.0",
-		"typescript": "6.0.2",
-		"vite": "8.0.4",
-		"vitest": "4.1.2"
+		"oxfmt": "0.47.0",
+		"oxlint": "1.62.0",
+		"oxlint-tsgolint": "0.22.1",
+		"typescript": "6.0.3",
+		"vite": "8.0.10",
+		"vitest": "4.1.5"
 	},
 	"engines": {
 		"node": ">=22"

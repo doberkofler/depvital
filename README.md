@@ -51,7 +51,10 @@ depvital
 depvital --fail-on high
 
 # Interactive update
-depvital --update
+depvital update-manual
+
+# Automatic update
+depvital update-auto
 
 # JSON output
 depvital --json > report.json

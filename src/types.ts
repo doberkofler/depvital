@@ -39,7 +39,7 @@ export const ConfigSchema = z.object({
 	githubToken: z.string().optional(),
 	cache: z.boolean().default(true),
 	progress: z.boolean().default(true),
-	update: z.boolean().default(false),
+	command: z.enum(['check', 'update-manual', 'update-auto']).default('check'),
 	minReleaseAge: z.number().default(3),
 	packageManager: z.enum(['npm', 'yarn', 'pnpm']).optional(),
 });

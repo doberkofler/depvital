@@ -59,6 +59,7 @@ export const linter = defineConfig({
 		'import/consistent-type-specifier-style': ['error', 'prefer-inline'],
 		'import/exports-last': 'off',
 		'import/group-exports': 'off',
+		'import/max-dependencies': 'off',
 		'import/no-named-export': 'off',
 		'import/no-namespace': 'off', // TODO: consider enabling
 		'import/no-nodejs-modules': 'off',
@@ -169,9 +170,7 @@ export const linter = defineConfig({
 		builtin: true,
 		node: true,
 	},
-	globals: {
-		node: 'readonly',
-	},
+	globals: {},
 	ignorePatterns: commonIgnore,
 });
 

@@ -14,6 +14,7 @@ const debug = createDebug('depvital:main');
 const program = new Command();
 
 type CliOptions = {
+	command?: 'check' | 'update-manual' | 'update-auto';
 	json: boolean;
 	debug: boolean;
 	failOn: 'low' | 'moderate' | 'high' | 'critical';
@@ -21,7 +22,6 @@ type CliOptions = {
 	githubToken?: string;
 	cache: boolean;
 	progress: boolean;
-	update: boolean;
 	minReleaseAge: string;
 	packageManager?: 'npm' | 'pnpm' | 'yarn';
 };
@@ -59,21 +59,22 @@ program
 	.option('--github-token <token>', 'GitHub token for higher rate limits')
 	.option('--no-cache', 'Disable caching')
 	.option('--no-progress', 'Suppress the progress bar')
-	.option('--update', 'Select outdated packages to update', false)
+	.argument('[command]', 'Command: check | update-manual | update-auto', 'check')
 	.option('--min-release-age <days>', 'Minimum number of days since release', '3')
 	.option('--package-manager <pm>', 'Force package manager (npm, pnpm, yarn)')
-	.action(async (options: CliOptions) => {
+	.action(async (command: CliOptions['command'], options: CliOptions) => {
 		if (options.debug) {
 			createDebug.enable('depvital:*');
 		}
 
 		console.log(`${pkg.name} v${pkg.version}`);
-		console.log(`Arguments: min-release-age: ${options.minReleaseAge} days, max-age: ${options.maxAge} days, update: ${options.update}`);
+		console.log(`Arguments: command: ${command ?? 'check'}, min-release-age: ${options.minReleaseAge} days, max-age: ${options.maxAge} days`);
 
 		debug('Starting CLI with options: %O', options);
 
 		const config = ConfigSchema.parse({
 			...options,
+			command: command ?? 'check',
 			maxAge: Number.parseInt(options.maxAge, 10),
 			minReleaseAge: Number.parseInt(options.minReleaseAge, 10),
 			githubToken: options.githubToken ?? process.env['GITHUB_TOKEN'],
@@ -109,18 +110,21 @@ program
 				printTable(results, githubRateLimitHit, stats, config.minReleaseAge);
 			}
 
-			if (config.update && !config.json) {
+			if (config.command !== 'check' && !config.json) {
 				const outdated = results.filter(
 					(r) => r.outdated && typeof r.latest === 'string' && typeof r.daysSinceLatestRelease === 'number' && r.daysSinceLatestRelease >= config.minReleaseAge,
 				);
 				if (outdated.length > 0) {
-					const selected = await checkbox({
-						message: 'Select packages to update:',
-						choices: outdated.map((r) => ({
-							name: `${r.package} (${r.current} -> ${r.latest})`,
-							value: r,
-						})),
-					});
+					const selected =
+						config.command === 'update-manual'
+							? await checkbox({
+									message: 'Select packages to update:',
+									choices: outdated.map((r) => ({
+										name: `${r.package} (${r.current} -> ${r.latest})`,
+										value: r,
+									})),
+							  })
+							: outdated;
 
 					if (selected.length > 0) {
 						const pm = config.packageManager ?? detectPackageManager();
@@ -139,9 +143,9 @@ program
 						});
 
 						await updatePackages(pm, selectedPackages);
-						console.log('\n✅ Selected packages updated successfully.');
+						console.log(config.command === 'update-auto' ? '\n✅ Eligible packages updated successfully.' : '\n✅ Selected packages updated successfully.');
 					} else {
-						console.log('\nNo packages selected for update.');
+						console.log(config.command === 'update-auto' ? '\nNo eligible packages found for update.' : '\nNo packages selected for update.');
 					}
 				}
 			}

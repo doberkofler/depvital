@@ -1,4 +1,4 @@
-# [0.6.0](https://github.com/doberkofler/depvital/compare/v0.5.0...v0.6.0) (2026-05-02)
+## [0.6.1](https://github.com/doberkofler/depvital/compare/v0.6.0...v0.6.1) (2026-05-03)
 
 
 ### Features

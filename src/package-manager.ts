@@ -237,7 +237,7 @@ export const getAudit = async (pm: 'npm' | 'yarn' | 'pnpm'): Promise<AuditResult
 					const via = firstVia;
 					title = typeof via === 'string' ? via : via.title;
 				}
-				title = title ?? 'Vulnerability';
+				title ??= 'Vulnerability';
 
 				if (pkg.length > 0) {
 					debug('Found vulnerability: %s for package %s', severity, pkg);

@@ -148,7 +148,7 @@ describe('analyzer', () => {
 
 		const {results} = await analyze(config);
 		expect(results).toHaveLength(1);
-		expect(loadSpy).toHaveBeenCalled();
+		expect(loadSpy).toHaveBeenCalledWith();
 		expect(getSpy).toHaveBeenCalledWith('pkg1');
 
 		// Verify recalculation of daysSinceLastRelease
@@ -334,8 +334,8 @@ describe('analyzer', () => {
 		};
 
 		await analyze(config);
-		expect(setSpy).toHaveBeenCalled();
-		expect(saveSpy).toHaveBeenCalled();
+		expect(setSpy).toHaveBeenCalledWith(expect.any(String), expect.any(Object));
+		expect(saveSpy).toHaveBeenCalledWith();
 	});
 
 	it('should call onProgress callback', async () => {

@@ -40,7 +40,7 @@ const extractLatestEntry = (content: string): string | null => {
 };
 
 export const normalizeRepoUrl = (repoUrl: string): string | null => {
-	const match = /(?:github\.com\/|github:|^)([^/]+\/[^/]+)/.exec(repoUrl);
+	const match = /(?:github\.com\/|github:|^)([^/]+\/[^/]+)/u.exec(repoUrl);
 	if (match === null) {
 		return null;
 	}
@@ -50,7 +50,7 @@ export const normalizeRepoUrl = (repoUrl: string): string | null => {
 		return null;
 	}
 
-	let result = captured.replace(/\.git$/, '');
+	let result = captured.replace(/\.git$/u, '');
 
 	if (result.includes('://')) {
 		const [, repoPart = ''] = result.split('://');

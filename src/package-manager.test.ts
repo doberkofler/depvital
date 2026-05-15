@@ -47,7 +47,7 @@ describe('package-manager', () => {
 
 			const deps = await getDependencies('npm');
 			expect(deps).toHaveLength(1);
-			expect(deps[0]).toEqual({
+			expect(deps[0]).toStrictEqual({
 				name: 'pkg1',
 				current: '1.0.0',
 				wanted: '1.0.0',
@@ -268,7 +268,7 @@ describe('package-manager', () => {
 
 			const outdated = await getOutdated('npm');
 			expect(outdated).toHaveLength(1);
-			expect(outdated[0]).toEqual({
+			expect(outdated[0]).toStrictEqual({
 				name: 'pkg1',
 				current: '1.0.0',
 				wanted: '1.1.0',
@@ -311,7 +311,7 @@ describe('package-manager', () => {
 
 			const outdated = await getOutdated('yarn');
 			expect(outdated).toHaveLength(1);
-			expect(outdated[0]).toEqual({
+			expect(outdated[0]).toStrictEqual({
 				name: 'pkg1',
 				current: '1.0.0',
 				wanted: '1.1.0',
@@ -400,7 +400,7 @@ describe('package-manager', () => {
 
 			const audit = await getAudit('npm');
 			expect(audit.vulnerabilities).toHaveLength(1);
-			expect(audit.vulnerabilities[0]).toEqual({
+			expect(audit.vulnerabilities[0]).toStrictEqual({
 				severity: 'high',
 				package: 'pkg1',
 				title: 'Big bad bug',
@@ -461,7 +461,7 @@ describe('package-manager', () => {
 
 			const audit = await getAudit('yarn');
 			expect(audit.vulnerabilities).toHaveLength(1);
-			expect(audit.vulnerabilities[0]).toEqual({
+			expect(audit.vulnerabilities[0]).toStrictEqual({
 				severity: 'moderate',
 				package: 'pkg2',
 				title: 'Yarn vuln',
@@ -501,7 +501,7 @@ describe('package-manager', () => {
 			});
 
 			const info = await getPackageInfo('npm', 'express');
-			expect(info).toEqual({
+			expect(info).toStrictEqual({
 				lastRelease: date,
 				deprecated: false,
 			});
@@ -520,7 +520,7 @@ describe('package-manager', () => {
 			});
 
 			const info = await getPackageInfo('npm', 'request');
-			expect(info).toEqual({
+			expect(info).toStrictEqual({
 				lastRelease: date,
 				latestReleaseDate: date,
 				deprecated: true,
@@ -536,7 +536,7 @@ describe('package-manager', () => {
 			});
 
 			const info = await getPackageInfo('npm', 'unknown');
-			expect(info).toEqual({
+			expect(info).toStrictEqual({
 				lastRelease: null,
 				deprecated: false,
 			});
@@ -606,7 +606,7 @@ describe('package-manager', () => {
 		it('should handle error in getPackageInfo', async () => {
 			vi.mocked(exec.runCommand).mockRejectedValue(new Error('Network error'));
 			const info = await getPackageInfo('npm', 'pkg');
-			expect(info).toEqual({lastRelease: null, deprecated: false});
+			expect(info).toStrictEqual({lastRelease: null, deprecated: false});
 		});
 	});
 

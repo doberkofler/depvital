@@ -1,10 +1,10 @@
 import {defineConfig} from 'oxlint';
 import {configs as regexpConfigs} from 'eslint-plugin-regexp';
 
-const commonIgnore = ['**/.*', 'node_modules/**', 'dist/**', 'coverage/**', 'temp/**', '**/*.md'];
-
 /** Filter out core ESLint rules bundled into eslint-plugin-regexp recommended config */
 const regexpPluginRules = Object.fromEntries(Object.entries(regexpConfigs.recommended.rules).filter(([key]) => key.startsWith('regexp/')));
+
+const commonIgnore = ['**/.*', 'node_modules/**', 'dist/**', 'build/**', 'coverage/**', 'temp/**', 'public/**', '**/*.md'];
 
 export const linter = defineConfig({
 	options: {
@@ -40,12 +40,17 @@ export const linter = defineConfig({
 		'eslint/no-inline-comments': 'off',
 		'eslint/no-magic-numbers': 'off',
 		'eslint/no-negated-condition': 'off', // TODO: consider enabling
+		'eslint/no-nested-ternary': 'off',
 		'eslint/no-warning-comments': 'off',
 		'eslint/no-undefined': 'off', // TODO: consider enabling
 		'eslint/no-plusplus': 'off',
 		'eslint/sort-imports': 'off',
 		'eslint/sort-keys': 'off',
 		'eslint/no-ternary': 'off',
+		'eslint/no-void': ['error', {allowAsStatement: true}],
+		'typescript/consistent-type-definitions': ['error', 'type'],
+		'typescript/dot-notation': ['error', {allowPattern: '^[a-zA-Z]+(_[a-zA-Z]+)+$'}],
+		'typescript/no-import-type-side-effects': 'off',
 		'typescript/no-unused-vars': [
 			'error',
 			{
@@ -53,8 +58,6 @@ export const linter = defineConfig({
 				argsIgnorePattern: '^_',
 			},
 		],
-		'typescript/consistent-type-definitions': ['error', 'type'],
-		'typescript/no-import-type-side-effects': 'off',
 		'typescript/prefer-readonly-parameter-types': 'off',
 		'import/consistent-type-specifier-style': ['error', 'prefer-inline'],
 		'import/exports-last': 'off',
@@ -63,6 +66,7 @@ export const linter = defineConfig({
 		'import/no-named-export': 'off',
 		'import/no-namespace': 'off', // TODO: consider enabling
 		'import/no-nodejs-modules': 'off',
+		'import/no-unassigned-import': ['error', {allow: ['**/*.css']}],
 		'import/prefer-default-export': 'off',
 		'import/no-default-export': 'off',
 		'jest/consistent-test-it': 'off',
@@ -97,6 +101,7 @@ export const linter = defineConfig({
 		'jest/prefer-called-with': 'off',
 		'jest/prefer-comparison-matcher': 'off',
 		'jest/prefer-each': 'off',
+		'jest/prefer-ending-with-an-expect': 'off',
 		'jest/prefer-equality-matcher': 'off',
 		'jest/prefer-expect-assertions': 'off',
 		'jest/prefer-expect-resolves': 'off',
@@ -122,26 +127,54 @@ export const linter = defineConfig({
 		'jest/valid-title': 'off',
 		'oxc/no-async-await': 'off',
 		'oxc/no-map-spread': 'off', // TODO: consider enabling
+		'oxc/no-optional-chaining': 'off',
 		'oxc/no-rest-spread-properties': 'off',
 		'unicorn/escape-case': 'off',
 		'unicorn/filename-case': 'off', // TODO: consider enabling
+		'unicorn/no-array-reduce': 'off', // TODO: consider enabling
 		'unicorn/no-array-sort': 'off', // TODO: consider enabling
 		'unicorn/no-hex-escape': 'off',
-		'unicorn/no-nested-ternary': 'off', // TODO: consider enabling
+		'unicorn/no-immediate-mutation': 'off',
+		'unicorn/no-negated-condition': 'off',
+		'unicorn/no-nested-ternary': 'off',
 		'unicorn/no-null': 'off', // TODO: consider enabling
 		'unicorn/no-process-exit': 'off', // TODO: consider enabling
 		'unicorn/no-typeof-undefined': 'off', // TODO: consider enabling
 		'unicorn/prefer-module': 'off', // TODO: consider enabling
+		'react/jsx-filename-extension': ['error', {extensions: ['.tsx']}],
+		'react/jsx-max-depth': ['error', {max: 5}],
+		'react/react-in-jsx-scope': 'off',
 		'vitest/max-expects': 'off',
 		'vitest/no-conditional-in-test': 'off',
 		'vitest/no-hooks': 'off',
 		'vitest/no-importing-vitest-globals': 'off',
 		'vitest/prefer-describe-function-title': 'off',
 		'vitest/prefer-expect-assertions': 'off',
+		'vitest/prefer-lowercase-title': 'off',
 		'vitest/prefer-to-be-falsy': 'off', // NOTE: Pick strictness: keep prefer-strict-boolean-matchers, disable truthy/falsy rules.
 		'vitest/prefer-to-be-truthy': 'off', // NOTE: Pick strictness: keep prefer-strict-boolean-matchers, disable truthy/falsy rules.
+		'vitest/require-hook': 'off',
 		'vitest/require-test-timeout': 'off',
 	},
+	overrides: [
+		{
+			// Relax strict type rules for unit tests to allow easier mocking and test scaffolding
+			files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx'],
+			rules: {
+				'typescript/no-unsafe-type-assertion': 'off',
+				'typescript/no-explicit-any': 'off',
+				'typescript/no-unsafe-assignment': 'off',
+				'typescript/no-unsafe-member-access': 'off',
+				'no-useless-undefined': 'off',
+			},
+		},
+		{
+			files: ['tests/e2e/**/*.e2e-test.ts', '**/*.e2e-test.ts'],
+			rules: {
+				'vitest/prefer-importing-vitest-globals': 'off',
+			},
+		},
+	],
 	settings: {
 		'jsx-a11y': {
 			polymorphicPropName: undefined,

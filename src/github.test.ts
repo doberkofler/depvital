@@ -130,7 +130,7 @@ describe('github', () => {
 			fetchMock.mockResolvedValue(jsonResponse(mockMetadata));
 
 			const metadata = await fetchGitHubMetadata('user/repo');
-			expect(metadata).toEqual(mockMetadata);
+			expect(metadata).toStrictEqual(mockMetadata);
 			expect(fetchMock).toHaveBeenCalledWith('https://api.github.com/repos/user/repo', expect.any(Object));
 		});
 
@@ -144,7 +144,7 @@ describe('github', () => {
 			fetchMock.mockResolvedValue(jsonResponse({stargazers_count: 0, open_issues_count: 0, pushed_at: ''}));
 
 			await fetchGitHubMetadata('user/repo', 'my-token');
-			expect(fetchMock).toHaveBeenCalled();
+			expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.any(Object));
 			const [firstCall] = fetchMock.mock.calls;
 			if (!firstCall) {
 				throw new Error('fetch should be called');
@@ -175,7 +175,7 @@ describe('github', () => {
 			fetchMock.mockResolvedValue(new Response('', {status: 404}));
 
 			await fetchChangelog('user/repo', 'my-token');
-			expect(fetchMock).toHaveBeenCalled();
+			expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.any(Object));
 			const [firstCall] = fetchMock.mock.calls;
 			if (!firstCall) {
 				throw new Error('fetch should be called');

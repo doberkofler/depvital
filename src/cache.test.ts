@@ -32,7 +32,7 @@ describe('Cache', () => {
 	it('should set and get data', () => {
 		const cache = new Cache();
 		cache.set('key', mockResult);
-		expect(cache.get('key')).toEqual(mockResult);
+		expect(cache.get('key')).toStrictEqual(mockResult);
 	});
 
 	it('should load data from file', async () => {
@@ -41,7 +41,7 @@ describe('Cache', () => {
 
 		const cache = new Cache();
 		await cache.load();
-		expect(cache.get('pkg1')).toEqual(mockResult);
+		expect(cache.get('pkg1')).toStrictEqual(mockResult);
 	});
 
 	it('should save data to file', async () => {
@@ -49,7 +49,7 @@ describe('Cache', () => {
 		cache.set('pkg1', mockResult);
 		await cache.save();
 
-		expect(writeFile).toHaveBeenCalled();
+		expect(writeFile).toHaveBeenCalledWith(expect.any(String), expect.any(String), expect.any(String));
 		const [firstCall] = vi.mocked(writeFile).mock.calls;
 		if (!firstCall) {
 			throw new Error('writeFile should be called');
@@ -58,7 +58,7 @@ describe('Cache', () => {
 		if (typeof content !== 'string') {
 			throw new TypeError('writeFile content should be a string');
 		}
-		expect(JSON.parse(content)).toEqual({pkg1: mockResult});
+		expect(JSON.parse(content)).toStrictEqual({pkg1: mockResult});
 	});
 
 	it('should clear data', () => {
@@ -92,7 +92,7 @@ describe('Cache', () => {
 		const cache = new Cache();
 		cache.set('pkg1', mockResult);
 		await cache.save();
-		expect(writeFile).toHaveBeenCalled();
+		expect(writeFile).toHaveBeenCalledWith(expect.any(String), expect.any(String), expect.any(String));
 	});
 
 	it('should handle set with invalid data', () => {

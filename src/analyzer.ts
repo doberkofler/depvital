@@ -56,8 +56,11 @@ export const analyze = async (configInput: Config, onProgress?: ProgressCallback
 	});
 
 	const cache = new Cache();
-	if (config.cache) {
-		debug('Loading cache...');
+	const shouldWrite = config.cache;
+	const shouldRead = config.cache && !config.updateCache;
+
+	if (shouldRead || shouldWrite) {
+		debug('Loading cache (read=%s, write=%s)...', shouldRead, shouldWrite);
 		await cache.load();
 	}
 
@@ -78,9 +81,10 @@ export const analyze = async (configInput: Config, onProgress?: ProgressCallback
 			onProgress(current, total);
 		}
 		debug('Processing package: %s', pkg.name);
-		const cached = config.cache ? cache.get(pkg.name) : undefined;
+		const cacheKey = `${pkg.name}@${pkg.current}`;
+		const cached = shouldRead ? cache.get(cacheKey) : undefined;
 
-		if (cached && cached.current === pkg.current && typeof cached.latestAvailable !== 'undefined') {
+		if (cached?.latestAvailable !== undefined) {
 			debug('Cache hit for %s (version %s matches)', pkg.name, pkg.current);
 
 			// Recalculate time-based maintenance data from cached lastRelease date
@@ -120,13 +124,8 @@ export const analyze = async (configInput: Config, onProgress?: ProgressCallback
 			continue;
 		}
 
-		if (cached && cached.current !== pkg.current) {
-			debug('Cache invalidation for %s: version changed from %s to %s', pkg.name, cached.current, pkg.current);
-		} else if (config.cache) {
+		if (shouldWrite) {
 			debug('Cache miss for %s', pkg.name);
-		}
-
-		if (config.cache) {
 			cacheMisses++;
 		}
 
@@ -221,14 +220,14 @@ export const analyze = async (configInput: Config, onProgress?: ProgressCallback
 			changelog,
 		});
 
-		if (config.cache) {
-			debug('Caching result for: %s', pkg.name);
-			cache.set(pkg.name, result);
+		if (shouldWrite) {
+			debug('Caching result for: %s', cacheKey);
+			cache.set(cacheKey, result);
 		}
 		results.push(result);
 	}
 
-	if (config.cache) {
+	if (shouldWrite) {
 		debug('Saving cache...');
 		await cache.save();
 	}

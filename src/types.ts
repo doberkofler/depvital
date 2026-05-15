@@ -38,6 +38,7 @@ export const ConfigSchema = z.object({
 	maxAge: z.number().default(180),
 	githubToken: z.string().optional(),
 	cache: z.boolean().default(true),
+	updateCache: z.boolean().default(false),
 	progress: z.boolean().default(true),
 	command: z.enum(['check', 'update-manual', 'update-auto']).default('check'),
 	minReleaseAge: z.number().default(3),

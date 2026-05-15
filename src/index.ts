@@ -21,6 +21,7 @@ type CliOptions = {
 	maxAge: string;
 	githubToken?: string;
 	cache: boolean;
+	updateCache: boolean;
 	progress: boolean;
 	minReleaseAge: string;
 	packageManager?: 'npm' | 'pnpm' | 'yarn';
@@ -58,6 +59,7 @@ program
 	.option('--max-age <days>', 'Maintenance threshold in days', '180')
 	.option('--github-token <token>', 'GitHub token for higher rate limits')
 	.option('--no-cache', 'Disable caching')
+	.option('--update-cache', 'Revalidate all cached data (ignores cache reads, writes fresh results)')
 	.option('--no-progress', 'Suppress the progress bar')
 	.argument('[command]', 'Command: check | update-manual | update-auto', 'check')
 	.option('--min-release-age <days>', 'Minimum number of days since release', '3')

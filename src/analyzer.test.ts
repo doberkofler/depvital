@@ -67,6 +67,7 @@ describe('analyzer', () => {
 			debug: false,
 			maxAge: 180,
 			cache: false,
+			updateCache: false,
 			progress: true,
 			command: 'check',
 			minReleaseAge: 3,
@@ -141,6 +142,7 @@ describe('analyzer', () => {
 			debug: false,
 			maxAge: 180,
 			cache: true,
+			updateCache: false,
 			progress: true,
 			command: 'check',
 			minReleaseAge: 3,
@@ -149,7 +151,7 @@ describe('analyzer', () => {
 		const {results} = await analyze(config);
 		expect(results).toHaveLength(1);
 		expect(loadSpy).toHaveBeenCalledWith();
-		expect(getSpy).toHaveBeenCalledWith('pkg1');
+		expect(getSpy).toHaveBeenCalledWith('pkg1@1.0.0');
 
 		// Verify recalculation of daysSinceLastRelease
 		const [firstResult] = results;
@@ -177,6 +179,7 @@ describe('analyzer', () => {
 			debug: false,
 			maxAge: 180,
 			cache: false,
+			updateCache: false,
 			progress: false,
 			command: 'check',
 			minReleaseAge: 3,
@@ -227,6 +230,7 @@ describe('analyzer', () => {
 			debug: false,
 			maxAge: 180,
 			cache: true,
+			updateCache: false,
 			progress: true,
 			command: 'check',
 			minReleaseAge: 3,
@@ -282,6 +286,7 @@ describe('analyzer', () => {
 			debug: false,
 			maxAge: 180,
 			cache: true,
+			updateCache: false,
 			progress: true,
 			command: 'check',
 			minReleaseAge: 3,
@@ -328,6 +333,7 @@ describe('analyzer', () => {
 			debug: false,
 			maxAge: 180,
 			cache: true,
+			updateCache: false,
 			progress: true,
 			command: 'check',
 			minReleaseAge: 3,
@@ -355,6 +361,7 @@ describe('analyzer', () => {
 			debug: false,
 			maxAge: 180,
 			cache: false,
+			updateCache: false,
 			progress: true,
 			command: 'check',
 			minReleaseAge: 3,
@@ -374,7 +381,7 @@ describe('analyzer', () => {
 		vi.mocked(github.fetchGitHubMetadata).mockResolvedValue(null);
 		vi.mocked(github.fetchChangelog).mockResolvedValue({found: false, url: null, latestEntry: null});
 
-		const config: Config = {json: false, debug: false, maxAge: 180, cache: false, progress: false, command: 'check', minReleaseAge: 3};
+		const config: Config = {json: false, debug: false, maxAge: 180, cache: false, updateCache: false, progress: false, command: 'check', minReleaseAge: 3};
 		const {githubRateLimitHit} = await analyze(config);
 		expect({githubRateLimitHit}).toMatchObject({githubRateLimitHit: true});
 	});

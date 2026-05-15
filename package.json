@@ -27,7 +27,6 @@
 		"dist",
 		"README.md",
 		"LICENSE",
-		"CONTRIBUTING.md",
 		"CHANGELOG.md"
 	],
 	"type": "module",
@@ -47,7 +46,6 @@
 	},
 	"dependencies": {
 		"@inquirer/prompts": "8.4.3",
-		"cli-progress": "3.12.0",
 		"commander": "14.0.3",
 		"debug": "4.4.3",
 		"zod": "4.4.3"
@@ -55,7 +53,6 @@
 	"devDependencies": {
 		"@commitlint/cli": "21.0.1",
 		"@commitlint/config-conventional": "21.0.1",
-		"@types/cli-progress": "3.11.6",
 		"@types/debug": "4.1.13",
 		"@types/node": "25.7.0",
 		"@vitest/coverage-v8": "4.1.6",

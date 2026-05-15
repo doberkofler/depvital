@@ -68,7 +68,6 @@ describe('analyzer', () => {
 			maxAge: 180,
 			cache: false,
 			updateCache: false,
-			progress: true,
 			command: 'check',
 			minReleaseAge: 3,
 		};
@@ -143,7 +142,6 @@ describe('analyzer', () => {
 			maxAge: 180,
 			cache: true,
 			updateCache: false,
-			progress: true,
 			command: 'check',
 			minReleaseAge: 3,
 		};
@@ -180,7 +178,6 @@ describe('analyzer', () => {
 			maxAge: 180,
 			cache: false,
 			updateCache: false,
-			progress: false,
 			command: 'check',
 			minReleaseAge: 3,
 		};
@@ -231,7 +228,6 @@ describe('analyzer', () => {
 			maxAge: 180,
 			cache: true,
 			updateCache: false,
-			progress: true,
 			command: 'check',
 			minReleaseAge: 3,
 		};
@@ -287,7 +283,6 @@ describe('analyzer', () => {
 			maxAge: 180,
 			cache: true,
 			updateCache: false,
-			progress: true,
 			command: 'check',
 			minReleaseAge: 3,
 		};
@@ -334,7 +329,6 @@ describe('analyzer', () => {
 			maxAge: 180,
 			cache: true,
 			updateCache: false,
-			progress: true,
 			command: 'check',
 			minReleaseAge: 3,
 		};
@@ -362,7 +356,6 @@ describe('analyzer', () => {
 			maxAge: 180,
 			cache: false,
 			updateCache: false,
-			progress: true,
 			command: 'check',
 			minReleaseAge: 3,
 		};
@@ -381,7 +374,7 @@ describe('analyzer', () => {
 		vi.mocked(github.fetchGitHubMetadata).mockResolvedValue(null);
 		vi.mocked(github.fetchChangelog).mockResolvedValue({found: false, url: null, latestEntry: null});
 
-		const config: Config = {json: false, debug: false, maxAge: 180, cache: false, updateCache: false, progress: false, command: 'check', minReleaseAge: 3};
+		const config: Config = {json: false, debug: false, maxAge: 180, cache: false, updateCache: false, command: 'check', minReleaseAge: 3};
 		const {githubRateLimitHit} = await analyze(config);
 		expect({githubRateLimitHit}).toMatchObject({githubRateLimitHit: true});
 	});

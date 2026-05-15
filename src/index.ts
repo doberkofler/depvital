@@ -3,7 +3,6 @@
 import {Command} from 'commander';
 import {analyze} from './analyzer.js';
 import {ConfigSchema} from './types.js';
-import {SingleBar, Presets} from 'cli-progress';
 import createDebug from 'debug';
 import {checkbox} from '@inquirer/prompts';
 import {detectPackageManager, updatePackages} from './package-manager.js';
@@ -22,7 +21,6 @@ type CliOptions = {
 	githubToken?: string;
 	cache: boolean;
 	updateCache: boolean;
-	progress: boolean;
 	minReleaseAge: string;
 	packageManager?: 'npm' | 'pnpm' | 'yarn';
 };
@@ -60,7 +58,6 @@ program
 	.option('--github-token <token>', 'GitHub token for higher rate limits')
 	.option('--no-cache', 'Disable caching')
 	.option('--update-cache', 'Revalidate all cached data (ignores cache reads, writes fresh results)')
-	.option('--no-progress', 'Suppress the progress bar')
 	.argument('[command]', 'Command: check | update-manual | update-auto', 'check')
 	.option('--min-release-age <days>', 'Minimum number of days since release', '3')
 	.option('--package-manager <pm>', 'Force package manager (npm, pnpm, yarn)')
@@ -84,25 +81,12 @@ program
 
 		debug('Parsed config: %O', config);
 
-		let bar: SingleBar | null = null;
-		if (!config.json && !config.debug && config.progress) {
-			bar = new SingleBar({clearOnComplete: true}, Presets.shades_classic);
-			bar.start(100, 0);
-		}
-
 		try {
 			debug('Starting analysis...');
 			const {results, githubRateLimitHit, stats} = await analyze(config, (current, total) => {
-				if (bar && total > 0) {
-					bar.setTotal(total);
-					bar.update(current);
-				}
+				debug('Progress: %d/%d', current, total);
 			});
 			debug('Analysis complete. Results count: %d', results.length);
-
-			if (bar) {
-				bar.stop();
-			}
 
 			if (config.json) {
 				debug('Outputting JSON results');
@@ -152,9 +136,6 @@ program
 				}
 			}
 		} catch (error) {
-			if (bar) {
-				bar.stop();
-			}
 			debug('Error during analysis: %O', error);
 			console.error('Error during analysis:', error);
 			process.exit(1);

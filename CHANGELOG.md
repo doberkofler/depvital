@@ -1,4 +1,13 @@
+# [0.7.0](https://github.com/doberkofler/depvital/compare/v0.6.1...v0.7.0) (2026-05-15)
+
+
+### Features
+
+* add versioned cache keys and --update-cache flag ([fb2797a](https://github.com/doberkofler/depvital/commit/fb2797ac5be7f6867ed31492b1aae14c4ba848cb))
+
 ## [0.6.1](https://github.com/doberkofler/depvital/compare/v0.6.0...v0.6.1) (2026-05-03)
+
+# [0.6.0](https://github.com/doberkofler/depvital/compare/v0.5.0...v0.6.0) (2026-05-02)
 
 
 ### Features

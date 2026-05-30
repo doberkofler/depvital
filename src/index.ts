@@ -8,6 +8,7 @@ import {checkbox} from '@inquirer/prompts';
 import {detectPackageManager, updatePackages} from './package-manager.js';
 import {readFileSync} from 'node:fs';
 import {printTable} from './printTable.js';
+import {writeHtmlReport} from './htmlReport.js';
 
 const debug = createDebug('depvital:main');
 const program = new Command();
@@ -83,9 +84,24 @@ program
 
 		try {
 			debug('Starting analysis...');
+			const showProgress = !config.json;
+			let lastProgressLength = 0;
 			const {results, githubRateLimitHit, stats} = await analyze(config, (current, total) => {
 				debug('Progress: %d/%d', current, total);
+				if (!showProgress) {
+					return;
+				}
+
+				const percent = total === 0 ? 100 : Math.round((current / total) * 100);
+				const progress = `Processing dependencies: ${current}/${total} (${percent}%)`;
+				const paddedProgress = progress.padEnd(lastProgressLength, ' ');
+				process.stdout.write(`\r${paddedProgress}`);
+				lastProgressLength = Math.max(lastProgressLength, progress.length);
 			});
+
+			if (showProgress && lastProgressLength > 0) {
+				process.stdout.write(`\r${' '.repeat(lastProgressLength)}\r`);
+			}
 			debug('Analysis complete. Results count: %d', results.length);
 
 			if (config.json) {
@@ -94,6 +110,9 @@ program
 			} else {
 				debug('Printing table results');
 				printTable(results, githubRateLimitHit, stats, config.minReleaseAge);
+				const {filePath, fileUrl} = await writeHtmlReport(results, stats, config.minReleaseAge);
+				console.log(`HTML report: depvital.html (${fileUrl})`);
+				debug('Wrote html report: %s', filePath);
 			}
 
 			if (config.command !== 'check' && !config.json) {

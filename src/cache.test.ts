@@ -1,11 +1,13 @@
 import {describe, it, expect, vi, beforeEach} from 'vitest';
 import {Cache} from './cache.js';
-import {readFile, writeFile} from 'node:fs/promises';
+import {mkdir, readFile, rename, rm, writeFile} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {type Result} from './types.js';
+import os from 'node:os';
 
 vi.mock(import('node:fs'));
 vi.mock(import('node:fs/promises'));
+vi.mock(import('node:os'));
 
 const mockResult: Result = {
 	package: 'pkg1',
@@ -27,6 +29,10 @@ const mockResult: Result = {
 describe('Cache', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
+		vi.mocked(os.homedir).mockReturnValue('/home/test');
+		vi.mocked(mkdir).mockResolvedValue(undefined);
+		vi.mocked(rm).mockResolvedValue(undefined);
+		vi.mocked(rename).mockResolvedValue(undefined);
 	});
 
 	it('should set and get data', () => {
@@ -49,7 +55,7 @@ describe('Cache', () => {
 		cache.set('pkg1', mockResult);
 		await cache.save();
 
-		expect(writeFile).toHaveBeenCalledWith(expect.any(String), expect.any(String), expect.any(String));
+		expect(writeFile).toHaveBeenCalledWith(expect.stringContaining('.tmp'), expect.any(String), expect.any(String));
 		const [firstCall] = vi.mocked(writeFile).mock.calls;
 		if (!firstCall) {
 			throw new Error('writeFile should be called');
@@ -87,12 +93,48 @@ describe('Cache', () => {
 	});
 
 	it('should handle error when saving to file', async () => {
-		vi.mocked(writeFile).mockRejectedValue(new Error('Write error'));
+		vi.mocked(mkdir).mockRejectedValue(new Error('Mkdir error'));
 
 		const cache = new Cache();
 		cache.set('pkg1', mockResult);
 		await cache.save();
-		expect(writeFile).toHaveBeenCalledWith(expect.any(String), expect.any(String), expect.any(String));
+		expect(writeFile).not.toHaveBeenCalled();
+		expect(rm).toHaveBeenCalledWith(expect.stringContaining('.depvital-cache.json.lock'), {recursive: true, force: true});
+	});
+
+	it('should use global cache path by default', async () => {
+		const cache = new Cache();
+		cache.set('pkg1', mockResult);
+		await cache.save();
+
+		expect(mkdir).toHaveBeenCalledWith('/home/test/.cache/depvital', {recursive: true});
+	});
+
+	it('should merge with existing data when saving', async () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFile).mockResolvedValue(JSON.stringify({existing: mockResult}));
+
+		const cache = new Cache();
+		cache.set('pkg1', mockResult);
+		await cache.save();
+
+		const [firstCall] = vi.mocked(writeFile).mock.calls;
+		if (!firstCall) {
+			throw new Error('writeFile should be called');
+		}
+		const [, content] = firstCall;
+		if (typeof content !== 'string') {
+			throw new TypeError('writeFile content should be a string');
+		}
+		expect(JSON.parse(content)).toStrictEqual({existing: mockResult, pkg1: mockResult});
+	});
+
+	it('should release lock after saving', async () => {
+		const cache = new Cache();
+		cache.set('pkg1', mockResult);
+		await cache.save();
+
+		expect(rm).toHaveBeenCalledWith(expect.stringContaining('.depvital-cache.json.lock'), {recursive: true, force: true});
 	});
 
 	it('should handle set with invalid data', () => {

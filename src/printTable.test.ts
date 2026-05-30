@@ -131,13 +131,15 @@ describe('printTable', () => {
 		expect(output).toContain('Current');
 		expect(output).toContain('Latest');
 		expect(output).toContain('Update');
-		expect(output).toContain('Vulnerable');
+		expect(output).toContain('Age');
+		expect(output).toContain('major-update-pkg');
+		expect(output).toContain('minor-update-pkg');
+		expect(output).toContain('up-to-date-pkg');
 
 		expect(output).toContain('\x1b[31m2.0.0\x1b[0m');
 		expect(output).toContain('\x1b[33m1.3.0\x1b[0m');
 		expect(output).toContain('\x1b[32mupdate\x1b[0m');
 		expect(output).toContain('\x1b[31mcooldown\x1b[0m');
-		expect(output).toContain('\x1b[31mYES\x1b[0m');
 		expect(output).toContain('\x1b[31m10d\x1b[0m');
 
 		expect(output).toContain('GitHub API rate limit exceeded. GitHub metadata (stars/issues) may be missing.');

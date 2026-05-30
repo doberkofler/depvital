@@ -38,40 +38,40 @@ export const printTable = (results: AnalysisResult['results'], githubRateLimitHi
 		return;
 	}
 
-	const headers = ['Package', 'Current', 'Latest', 'Update', 'Vulnerable', 'Age', 'GitHub', 'Changelog'];
+	const headers = ['Package', 'Current', 'Latest', 'Update', 'Age'];
 	const columnWidths = headers.map((header) => header.length);
+	const updateWidth = (index: number, value: number): void => {
+		const currentWidth = columnWidths[index];
+		if (currentWidth === undefined) {
+			return;
+		}
+
+		columnWidths[index] = Math.max(currentWidth, value);
+	};
 
 	for (const result of results) {
-		columnWidths[0] = Math.max(columnWidths[0] ?? 0, result.package.length);
-		columnWidths[1] = Math.max(columnWidths[1] ?? 0, result.current.length);
+		updateWidth(0, stripVTControlCharacters(result.package).length);
+		updateWidth(1, result.current.length);
 
 		const latestLength = typeof result.latest === 'string' ? result.latest.length : 0;
-		columnWidths[2] = Math.max(columnWidths[2] ?? 0, latestLength);
+		updateWidth(2, latestLength);
 
 		const ageDays = typeof result.daysSinceLatestRelease === 'number' ? result.daysSinceLatestRelease : null;
 		let updateLen = 0;
 		if (result.outdated && ageDays !== null) {
 			updateLen = ageDays >= minReleaseAge ? 6 : 8;
 		}
-		columnWidths[3] = Math.max(columnWidths[3] ?? 0, updateLen);
+		updateWidth(3, updateLen);
 
-		columnWidths[4] = Math.max(columnWidths[4] ?? 0, 10);
+		updateWidth(4, 3);
 		const ageStr = formatHumanAge(result.maintenance.lastRelease);
-		columnWidths[5] = Math.max(columnWidths[5] ?? 0, ageStr.length);
-
-		const githubLength = typeof result.githubUrl === 'string' ? result.githubUrl.length : 0;
-		columnWidths[6] = Math.max(columnWidths[6] ?? 0, githubLength);
-
-		const changelogUrl = result.changelog.url;
-		const changelogLength = typeof changelogUrl === 'string' ? changelogUrl.length : 0;
-		columnWidths[7] = Math.max(columnWidths[7] ?? 0, changelogLength);
+		updateWidth(4, ageStr.length);
 	}
 
 	console.log(`\n${formatRow(headers, columnWidths)}`);
 	console.log('-'.repeat(columnWidths.reduce((total, width) => total + width + 3, 0) - 3));
 
 	for (const result of results) {
-		const isVulnerable = result.vulnerabilities.length > 0;
 		const isMaintained = result.maintenance.isMaintained === true;
 		const ageStr = formatHumanAge(result.maintenance.lastRelease);
 
@@ -81,12 +81,11 @@ export const printTable = (results: AnalysisResult['results'], githubRateLimitHi
 		const daysSinceLatestRelease = typeof result.daysSinceLatestRelease === 'number' ? result.daysSinceLatestRelease : null;
 		const updateStr = colorUpdate(result.outdated, daysSinceLatestRelease, minReleaseAge);
 
-		const githubUrl = typeof result.githubUrl === 'string' ? result.githubUrl : '';
-		const changelogUrl = typeof result.changelog.url === 'string' ? result.changelog.url : '';
+		const packageCell = result.package;
 
 		const ageCell = !isMaintained && result.maintenance.lastRelease !== null ? `${RED}${ageStr}${RESET}` : ageStr;
 
-		const row = [result.package, result.current, latestStr, updateStr, isVulnerable ? `${RED}YES${RESET}` : 'no', ageCell, githubUrl, changelogUrl];
+		const row = [packageCell, result.current, latestStr, updateStr, ageCell];
 
 		const paddedRow = row.map((cell, index) => paddedAnsiCell(cell, columnWidths[index] ?? 0)).join(' | ');
 		console.log(paddedRow);

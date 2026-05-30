@@ -1,5 +1,5 @@
 import {readFile, writeFile} from 'node:fs/promises';
-import {join} from 'node:path';
+import path from 'node:path';
 import {existsSync} from 'node:fs';
 import {z} from 'zod';
 import {ResultSchema} from './types.js';
@@ -14,7 +14,7 @@ export class Cache {
 	private data: z.infer<typeof CacheDataSchema> = {};
 
 	public constructor(cwd: string = process.cwd()) {
-		this.cachePath = join(cwd, CACHE_FILE);
+		this.cachePath = path.join(cwd, CACHE_FILE);
 		debug('Cache path set to: %s', this.cachePath);
 	}
 

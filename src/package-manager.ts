@@ -1,5 +1,5 @@
 import {existsSync, readFileSync} from 'node:fs';
-import {join} from 'node:path';
+import path from 'node:path';
 import {runCommand} from './utils/exec.js';
 import {
 	NpmOutdatedSchema,
@@ -45,11 +45,11 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 export const detectPackageManager = (cwd: string = process.cwd()): 'npm' | 'yarn' | 'pnpm' => {
 	debug('Detecting package manager in: %s', cwd);
-	if (existsSync(join(cwd, 'pnpm-lock.yaml'))) {
+	if (existsSync(path.join(cwd, 'pnpm-lock.yaml'))) {
 		debug('Detected pnpm-lock.yaml');
 		return 'pnpm';
 	}
-	if (existsSync(join(cwd, 'yarn.lock'))) {
+	if (existsSync(path.join(cwd, 'yarn.lock'))) {
 		debug('Detected yarn.lock');
 		return 'yarn';
 	}
@@ -59,7 +59,7 @@ export const detectPackageManager = (cwd: string = process.cwd()): 'npm' | 'yarn
 
 export const getDependencies = async (pm: 'npm' | 'yarn' | 'pnpm'): Promise<PackageMetadata[]> => {
 	const cwd = process.cwd();
-	const packageJsonPath = join(cwd, 'package.json');
+	const packageJsonPath = path.join(cwd, 'package.json');
 	const explicitDeps = new Set<string>();
 
 	if (existsSync(packageJsonPath)) {

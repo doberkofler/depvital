@@ -12,7 +12,7 @@ const overrides: Partial<NonNullable<typeof defaults.overrides>[number]>[] = [];
 const config = {
 	...defaults,
 	rules: {...defaults.rules, ...rules},
-	overrides: [...(defaults.overrides ?? []), ...overrides],
+	overrides: [...defaults.overrides, ...overrides],
 };
 
 export default config;

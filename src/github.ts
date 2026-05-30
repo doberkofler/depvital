@@ -1,5 +1,5 @@
 import {readFile} from 'node:fs/promises';
-import {join} from 'node:path';
+import path from 'node:path';
 import {existsSync} from 'node:fs';
 import {PackageJsonSchema, GitHubRepoSchema, GitHubReleaseSchema} from './types.js';
 import createDebug from 'debug';
@@ -79,7 +79,7 @@ export const resolvePackageRepo = async (packageName: string, cwd: string = proc
 		}
 	}
 
-	const pkgPath = join(cwd, 'node_modules', packageName, 'package.json');
+	const pkgPath = path.join(cwd, 'node_modules', packageName, 'package.json');
 	if (!existsSync(pkgPath)) {
 		debug('Package not found in node_modules: %s', packageName);
 		return null;

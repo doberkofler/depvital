@@ -1,3 +1,10 @@
+# [0.8.0](https://github.com/doberkofler/depvital/compare/v0.7.1...v0.8.0) (2026-05-30)
+
+
+### Features
+
+* switch to global caching. add html report ([a7859f4](https://github.com/doberkofler/depvital/commit/a7859f41e5d365cc8272fe46a9cf2e1c38203487))
+
 ## [0.7.1](https://github.com/doberkofler/depvital/compare/v0.7.0...v0.7.1) (2026-05-30)
 
 # [0.7.0](https://github.com/doberkofler/depvital/compare/v0.6.1...v0.7.0) (2026-05-15)

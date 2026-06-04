@@ -20,8 +20,7 @@ type CliOptions = {
 	failOn: 'low' | 'moderate' | 'high' | 'critical';
 	maxAge: string;
 	githubToken?: string;
-	cache: boolean;
-	updateCache: boolean;
+	cachePurge: boolean;
 	minReleaseAge: string;
 	packageManager?: 'npm' | 'pnpm' | 'yarn';
 };
@@ -57,8 +56,7 @@ program
 	.option('--fail-on <severity>', 'Fail if vulnerability severity is at or above threshold', 'moderate')
 	.option('--max-age <days>', 'Maintenance threshold in days', '180')
 	.option('--github-token <token>', 'GitHub token for higher rate limits')
-	.option('--no-cache', 'Disable caching')
-	.option('--update-cache', 'Revalidate all cached data (ignores cache reads, writes fresh results)')
+	.option('--cache-purge', 'Delete the dependency analysis cache before running')
 	.argument('[command]', 'Command: check | update-manual | update-auto', 'check')
 	.option('--min-release-age <days>', 'Minimum number of days since release', '3')
 	.option('--package-manager <pm>', 'Force package manager (npm, pnpm, yarn)')

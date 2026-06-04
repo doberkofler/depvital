@@ -152,4 +152,11 @@ export class Cache {
 		debug('Clearing cache');
 		this.data = {};
 	}
+
+	public async purge(): Promise<void> {
+		debug('Purging cache file: %s', this.cachePath);
+		this.clear();
+		await rm(this.cachePath, {force: true});
+		await rm(this.lockPath, {recursive: true, force: true});
+	}
 }

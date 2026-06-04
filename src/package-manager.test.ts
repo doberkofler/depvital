@@ -267,6 +267,7 @@ describe('package-manager', () => {
 			});
 
 			const outdated = await getOutdated('npm');
+			expect(exec.runCommand).toHaveBeenCalledWith('npm outdated --min-release-age=0 --json');
 			expect(outdated).toHaveLength(1);
 			expect(outdated[0]).toStrictEqual({
 				name: 'pkg1',

@@ -56,11 +56,11 @@ export const analyze = async (configInput: Config, onProgress?: ProgressCallback
 	});
 
 	const cache = new Cache();
-	const shouldWrite = config.cache;
-	const shouldRead = config.cache && !config.updateCache;
-
-	if (shouldRead || shouldWrite) {
-		debug('Loading cache (read=%s, write=%s)...', shouldRead, shouldWrite);
+	if (config.cachePurge) {
+		debug('Purging cache before analysis...');
+		await cache.purge();
+	} else {
+		debug('Loading cache...');
 		await cache.load();
 	}
 
@@ -82,7 +82,9 @@ export const analyze = async (configInput: Config, onProgress?: ProgressCallback
 		}
 		debug('Processing package: %s', pkg.name);
 		const cacheKey = `${pkg.name}@${pkg.current}`;
-		const cached = shouldRead ? cache.get(cacheKey) : undefined;
+		const cached = cache.get(cacheKey);
+		const freshOutdated = outdatedMap.get(pkg.name);
+		const freshLatestAvailable = freshOutdated?.latest ?? pkg.current;
 
 		if (cached?.latestAvailable !== undefined) {
 			debug('Cache hit for %s (version %s matches)', pkg.name, pkg.current);
@@ -98,36 +100,45 @@ export const analyze = async (configInput: Config, onProgress?: ProgressCallback
 				maintenance.isMaintained = diffDays <= config.maxAge;
 			}
 
-			let daysSinceLatestRelease = cached.daysSinceLatestRelease ?? null;
-			if (typeof cached.latestReleaseDate === 'string') {
-				const releaseDate = new Date(cached.latestReleaseDate);
+			let {deprecated} = cached;
+			let latestReleaseDate = cached.latestReleaseDate ?? null;
+			if (freshLatestAvailable !== cached.latestAvailable) {
+				debug('Refreshing registry metadata for %s because latest changed from %s to %s', pkg.name, cached.latestAvailable, freshLatestAvailable);
+				// eslint-disable-next-line eslint/no-await-in-loop -- only refresh changed packages on cache hits
+				const pkgInfo = await getPackageInfo(pm, pkg.name);
+				({deprecated} = pkgInfo);
+				latestReleaseDate = pkgInfo.latestReleaseDate ?? null;
+			}
+
+			let daysSinceLatestRelease = null;
+			if (typeof latestReleaseDate === 'string') {
+				const releaseDate = new Date(latestReleaseDate);
 				const now = new Date();
 				const diffTime = Math.abs(now.getTime() - releaseDate.getTime());
 				daysSinceLatestRelease = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 			}
 
-			const latestAvailable = pkg.latest !== pkg.current ? pkg.latest : (cached.latestAvailable ?? pkg.latest);
-
 			// Merge cached metadata with fresh update and audit info
 			const result: Result = {
 				...cached,
 				maintenance,
-				latest: latestAvailable,
-				latestAvailable,
+				latest: freshLatestAvailable,
+				latestAvailable: freshLatestAvailable,
+				latestReleaseDate,
 				daysSinceLatestRelease,
-				outdated: pkg.current !== latestAvailable,
+				outdated: freshOutdated !== undefined && pkg.current !== freshLatestAvailable,
 				isDev: pkg.isDev,
 				vulnerabilities: audit.vulnerabilities.filter((v) => v.package === pkg.name).map((v) => ({severity: v.severity, title: v.title})),
+				deprecated,
 			};
+			cache.set(cacheKey, result);
 			results.push(result);
 			cacheHits++;
 			continue;
 		}
 
-		if (shouldWrite) {
-			debug('Cache miss for %s', pkg.name);
-			cacheMisses++;
-		}
+		debug('Cache miss for %s', pkg.name);
+		cacheMisses++;
 
 		// Fallback for maintenance info: npm registry
 		debug('Fetching package info from registry for: %s', pkg.name);
@@ -220,17 +231,13 @@ export const analyze = async (configInput: Config, onProgress?: ProgressCallback
 			changelog,
 		});
 
-		if (shouldWrite) {
-			debug('Caching result for: %s', cacheKey);
-			cache.set(cacheKey, result);
-		}
+		debug('Caching result for: %s', cacheKey);
+		cache.set(cacheKey, result);
 		results.push(result);
 	}
 
-	if (shouldWrite) {
-		debug('Saving cache...');
-		await cache.save();
-	}
+	debug('Saving cache...');
+	await cache.save();
 
 	const stats = {
 		totalPackages: results.length,

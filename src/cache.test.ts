@@ -74,6 +74,16 @@ describe('Cache', () => {
 		expect(cache.get('pkg1')).toBeUndefined();
 	});
 
+	it('should purge cache file and lock', async () => {
+		const cache = new Cache();
+		cache.set('pkg1', mockResult);
+		await cache.purge();
+
+		expect(cache.get('pkg1')).toBeUndefined();
+		expect(rm).toHaveBeenCalledWith(expect.stringContaining('.depvital-cache.json'), {force: true});
+		expect(rm).toHaveBeenCalledWith(expect.stringContaining('.depvital-cache.json.lock'), {recursive: true, force: true});
+	});
+
 	it('should handle validation failure when loading from file', async () => {
 		vi.mocked(existsSync).mockReturnValue(true);
 		vi.mocked(readFile).mockResolvedValue(JSON.stringify({pkg1: {invalid: 'data'}}));

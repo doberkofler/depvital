@@ -40,12 +40,12 @@ const extractLatestEntry = (content: string): string | null => {
 };
 
 export const normalizeRepoUrl = (repoUrl: string): string | null => {
-	const match = /(?:github\.com\/|github:|^)([^/]+\/[^/]+)/u.exec(repoUrl);
+	const match = /(?:github\.com\/|github:|^)(?<repo>[^/]+\/[^/]+)/u.exec(repoUrl);
 	if (match === null) {
 		return null;
 	}
 
-	const [, captured] = match;
+	const captured = match.groups?.['repo'];
 	if (typeof captured !== 'string') {
 		return null;
 	}

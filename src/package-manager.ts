@@ -22,7 +22,7 @@ const listCommands: Record<'npm' | 'pnpm' | 'yarn', string> = {
 };
 
 const outdatedCommands: Record<'npm' | 'pnpm' | 'yarn', string> = {
-	npm: 'npm outdated --json',
+	npm: 'npm outdated --min-release-age=0 --json',
 	pnpm: 'pnpm outdated --format json',
 	yarn: 'yarn outdated --json',
 };

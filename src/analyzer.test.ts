@@ -15,7 +15,7 @@ describe('analyzer', () => {
 	});
 
 	it('should perform a full analysis on all dependencies', async () => {
-		vi.mocked(pm.detectPackageManager).mockResolvedValue('npm');
+		vi.mocked(pm.detectPackageManager).mockReturnValue('npm');
 		vi.mocked(pm.getDependencies).mockResolvedValue([
 			{
 				name: 'pkg1',
@@ -66,8 +66,7 @@ describe('analyzer', () => {
 			json: false,
 			debug: false,
 			maxAge: 180,
-			cache: false,
-			updateCache: false,
+			cachePurge: false,
 			command: 'check',
 			minReleaseAge: 3,
 		};
@@ -95,8 +94,8 @@ describe('analyzer', () => {
 		expect(res2.githubUrl).toBe('https://github.com/user/repo');
 	});
 
-	it('should use cache if enabled', async () => {
-		vi.mocked(pm.detectPackageManager).mockResolvedValue('npm');
+	it('should use cache', async () => {
+		vi.mocked(pm.detectPackageManager).mockReturnValue('npm');
 		vi.mocked(pm.getDependencies).mockResolvedValue([
 			{
 				name: 'pkg1',
@@ -140,8 +139,7 @@ describe('analyzer', () => {
 			json: false,
 			debug: false,
 			maxAge: 180,
-			cache: true,
-			updateCache: false,
+			cachePurge: false,
 			command: 'check',
 			minReleaseAge: 3,
 		};
@@ -160,7 +158,7 @@ describe('analyzer', () => {
 	});
 
 	it('should mark package outdated using absolute latest from registry info', async () => {
-		vi.mocked(pm.detectPackageManager).mockResolvedValue('npm');
+		vi.mocked(pm.detectPackageManager).mockReturnValue('npm');
 		vi.mocked(pm.getDependencies).mockResolvedValue([{name: 'pkg1', current: '1.0.0', wanted: '1.0.0', latest: '1.0.0', isDev: false}]);
 		vi.mocked(pm.getOutdated).mockResolvedValue([]);
 		vi.mocked(pm.getAudit).mockResolvedValue({vulnerabilities: [], deprecated: []});
@@ -176,8 +174,7 @@ describe('analyzer', () => {
 			json: false,
 			debug: false,
 			maxAge: 180,
-			cache: false,
-			updateCache: false,
+			cachePurge: false,
 			command: 'check',
 			minReleaseAge: 3,
 		};
@@ -194,7 +191,7 @@ describe('analyzer', () => {
 	});
 
 	it('should invalidate cache if version changed', async () => {
-		vi.mocked(pm.detectPackageManager).mockResolvedValue('npm');
+		vi.mocked(pm.detectPackageManager).mockReturnValue('npm');
 		vi.mocked(pm.getDependencies).mockResolvedValue([
 			{
 				name: 'pkg1',
@@ -226,8 +223,7 @@ describe('analyzer', () => {
 			json: false,
 			debug: false,
 			maxAge: 180,
-			cache: true,
-			updateCache: false,
+			cachePurge: false,
 			command: 'check',
 			minReleaseAge: 3,
 		};
@@ -244,7 +240,7 @@ describe('analyzer', () => {
 	});
 
 	it('should use fresh audit and outdated data even on cache hit', async () => {
-		vi.mocked(pm.detectPackageManager).mockResolvedValue('npm');
+		vi.mocked(pm.detectPackageManager).mockReturnValue('npm');
 		vi.mocked(pm.getDependencies).mockResolvedValue([
 			{
 				name: 'pkg1',
@@ -261,7 +257,12 @@ describe('analyzer', () => {
 			vulnerabilities: [{severity: 'critical', title: 'New Vuln', package: 'pkg1'}],
 			deprecated: [],
 		});
-		vi.mocked(pm.getPackageInfo).mockResolvedValue({lastRelease: null, deprecated: false});
+		vi.mocked(pm.getPackageInfo).mockResolvedValue({
+			lastRelease: '2026-01-01T00:00:00.000Z',
+			deprecated: false,
+			latestVersion: '1.1.0',
+			latestReleaseDate: '2026-01-01T00:00:00.000Z',
+		});
 
 		vi.spyOn(Cache.prototype, 'load').mockResolvedValue();
 		vi.spyOn(Cache.prototype, 'get').mockReturnValue({
@@ -281,8 +282,7 @@ describe('analyzer', () => {
 			json: false,
 			debug: false,
 			maxAge: 180,
-			cache: true,
-			updateCache: false,
+			cachePurge: false,
 			command: 'check',
 			minReleaseAge: 3,
 		};
@@ -296,6 +296,9 @@ describe('analyzer', () => {
 		}
 		expect(firstResult).toMatchObject({outdated: true});
 		expect(firstResult.latest).toBe('1.1.0');
+		expect(firstResult.latestReleaseDate).toBe('2026-01-01T00:00:00.000Z');
+		expect(firstResult.daysSinceLatestRelease).not.toBeNull();
+		expect(pm.getPackageInfo).toHaveBeenCalledWith('npm', 'pkg1');
 		expect(firstResult.vulnerabilities).toHaveLength(1);
 		const [firstVulnerability] = firstResult.vulnerabilities;
 		if (!firstVulnerability) {
@@ -305,7 +308,7 @@ describe('analyzer', () => {
 	});
 
 	it('should update cache after analysis', async () => {
-		vi.mocked(pm.detectPackageManager).mockResolvedValue('npm');
+		vi.mocked(pm.detectPackageManager).mockReturnValue('npm');
 		vi.mocked(pm.getDependencies).mockResolvedValue([
 			{
 				name: 'pkg1',
@@ -327,8 +330,7 @@ describe('analyzer', () => {
 			json: false,
 			debug: false,
 			maxAge: 180,
-			cache: true,
-			updateCache: false,
+			cachePurge: false,
 			command: 'check',
 			minReleaseAge: 3,
 		};
@@ -338,8 +340,33 @@ describe('analyzer', () => {
 		expect(saveSpy).toHaveBeenCalledWith();
 	});
 
+	it('should purge cache before analysis when requested', async () => {
+		vi.mocked(pm.detectPackageManager).mockReturnValue('npm');
+		vi.mocked(pm.getDependencies).mockResolvedValue([{name: 'pkg1', current: '1.0.0', wanted: '1.0.0', latest: '1.0.0', isDev: false}]);
+		vi.mocked(pm.getOutdated).mockResolvedValue([]);
+		vi.mocked(pm.getAudit).mockResolvedValue({vulnerabilities: [], deprecated: []});
+		vi.mocked(pm.getPackageInfo).mockResolvedValue({lastRelease: null, deprecated: false});
+		vi.mocked(github.resolvePackageRepo).mockResolvedValue(null);
+
+		const purgeSpy = vi.spyOn(Cache.prototype, 'purge').mockResolvedValue();
+		const loadSpy = vi.spyOn(Cache.prototype, 'load').mockResolvedValue();
+
+		const config: Config = {
+			json: false,
+			debug: false,
+			maxAge: 180,
+			cachePurge: true,
+			command: 'check',
+			minReleaseAge: 3,
+		};
+
+		await analyze(config);
+		expect(purgeSpy).toHaveBeenCalledWith();
+		expect(loadSpy).not.toHaveBeenCalled();
+	});
+
 	it('should call onProgress callback', async () => {
-		vi.mocked(pm.detectPackageManager).mockResolvedValue('npm');
+		vi.mocked(pm.detectPackageManager).mockReturnValue('npm');
 		vi.mocked(pm.getDependencies).mockResolvedValue([
 			{name: 'pkg1', current: '1.0.0', wanted: '1.0.0', latest: '1.0.0', isDev: false},
 			{name: 'pkg2', current: '2.0.0', wanted: '2.0.0', latest: '2.0.0', isDev: false},
@@ -354,8 +381,7 @@ describe('analyzer', () => {
 			json: false,
 			debug: false,
 			maxAge: 180,
-			cache: false,
-			updateCache: false,
+			cachePurge: false,
 			command: 'check',
 			minReleaseAge: 3,
 		};
@@ -365,7 +391,7 @@ describe('analyzer', () => {
 	});
 
 	it('should set githubRateLimitHit if fetchGitHubMetadata returns null', async () => {
-		vi.mocked(pm.detectPackageManager).mockResolvedValue('npm');
+		vi.mocked(pm.detectPackageManager).mockReturnValue('npm');
 		vi.mocked(pm.getDependencies).mockResolvedValue([{name: 'pkg1', current: '1.0.0', wanted: '1.0.0', latest: '1.0.0', isDev: false}]);
 		vi.mocked(pm.getOutdated).mockResolvedValue([]);
 		vi.mocked(pm.getAudit).mockResolvedValue({vulnerabilities: [], deprecated: []});
@@ -374,7 +400,7 @@ describe('analyzer', () => {
 		vi.mocked(github.fetchGitHubMetadata).mockResolvedValue(null);
 		vi.mocked(github.fetchChangelog).mockResolvedValue({found: false, url: null, latestEntry: null});
 
-		const config: Config = {json: false, debug: false, maxAge: 180, cache: false, updateCache: false, command: 'check', minReleaseAge: 3};
+		const config: Config = {json: false, debug: false, maxAge: 180, cachePurge: false, command: 'check', minReleaseAge: 3};
 		const {githubRateLimitHit} = await analyze(config);
 		expect({githubRateLimitHit}).toMatchObject({githubRateLimitHit: true});
 	});

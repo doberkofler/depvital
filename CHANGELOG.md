@@ -1,3 +1,10 @@
+# [0.9.0](https://github.com/doberkofler/depvital/compare/v0.8.0...v0.9.0) (2026-06-04)
+
+
+### Features
+
+* improve and cleanup caching ([c5004ee](https://github.com/doberkofler/depvital/commit/c5004ee13901d2c4b0792815d5ddafae626bca87))
+
 # [0.8.0](https://github.com/doberkofler/depvital/compare/v0.7.1...v0.8.0) (2026-05-30)
 
 

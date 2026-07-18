@@ -1,12 +1,12 @@
-# [0.9.0](https://github.com/doberkofler/depvital/compare/v0.8.0...v0.9.0) (2026-06-04)
+## [0.9.1](https://github.com/doberkofler/depvital/compare/v0.9.0...v0.9.1) (2026-07-18)
 
+# [0.9.0](https://github.com/doberkofler/depvital/compare/v0.8.0...v0.9.0) (2026-06-04)
 
 ### Features
 
 * improve and cleanup caching ([c5004ee](https://github.com/doberkofler/depvital/commit/c5004ee13901d2c4b0792815d5ddafae626bca87))
 
 # [0.8.0](https://github.com/doberkofler/depvital/compare/v0.7.1...v0.8.0) (2026-05-30)
-
 
 ### Features
 
@@ -16,7 +16,6 @@
 
 # [0.7.0](https://github.com/doberkofler/depvital/compare/v0.6.1...v0.7.0) (2026-05-15)
 
-
 ### Features
 
 * add versioned cache keys and --update-cache flag ([fb2797a](https://github.com/doberkofler/depvital/commit/fb2797ac5be7f6867ed31492b1aae14c4ba848cb))
@@ -25,7 +24,6 @@
 
 # [0.6.0](https://github.com/doberkofler/depvital/compare/v0.5.0...v0.6.0) (2026-05-02)
 
-
 ### Features
 
 * add commands check, update-auto and update-manual ([490ceb9](https://github.com/doberkofler/depvital/commit/490ceb93c8eb20d7a1f2147427257f5201e33905))
@@ -33,13 +31,11 @@
 
 # [0.5.0](https://github.com/doberkofler/depvital/compare/v0.4.0...v0.5.0) (2026-04-08)
 
-
 ### Features
 
 * show proper latest version for packages that cannot be updated because of the min release age ([61c6410](https://github.com/doberkofler/depvital/commit/61c64107a254097a4e0da4d49a60b77b6ce86ecd))
 
 # [0.4.0](https://github.com/doberkofler/depvital/compare/v0.3.0...v0.4.0) (2026-03-23)
-
 
 ### Bug Fixes
 
@@ -49,18 +45,15 @@
 * improved github repository detection ([a02c713](https://github.com/doberkofler/depvital/commit/a02c713f6a81a54e695fd13354edb57c1678ac43))
 * improved unit tests ([85281d0](https://github.com/doberkofler/depvital/commit/85281d0d34fec747079c25151b4701fad9b869fe))
 
-
 ### Features
 
 * add --update argument to interactively update packages ([5ddf2e6](https://github.com/doberkofler/depvital/commit/5ddf2e6de2e965c15e96324c72f9be0c841808b0))
 
 # [0.3.0](https://github.com/doberkofler/depvital/compare/v0.2.1...v0.3.0) (2026-03-22)
 
-
 ### Bug Fixes
 
 * progress bar ([9a1a624](https://github.com/doberkofler/depvital/commit/9a1a624ecc672f9c9d547e82a8d8cfd1cc514aa8))
-
 
 ### Features
 
@@ -76,13 +69,11 @@
 
 # [0.2.0](https://github.com/doberkofler/depvital/compare/v0.1.0...v0.2.0) (2026-03-22)
 
-
 ### Bug Fixes
 
 * add bin ([135daa8](https://github.com/doberkofler/depvital/commit/135daa82c50c890ed9131bfcb701c93bd6d0a80a))
 
 # [0.1.0](https://github.com/doberkofler/depvital/compare/b352bba8001bf996c11b87d2ec05dd32bf2dfb4e...v0.1.0) (2026-03-22)
-
 
 ### Features
 

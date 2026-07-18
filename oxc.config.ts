@@ -131,6 +131,7 @@ export const linter = defineConfig({
 		'oxc/no-rest-spread-properties': 'off',
 		'unicorn/escape-case': 'off',
 		'unicorn/filename-case': 'off', // TODO: consider enabling
+		'unicorn/max-nested-calls': ['warn', {max: 5}],
 		'unicorn/no-array-reduce': 'off', // TODO: consider enabling
 		'unicorn/no-array-sort': 'off', // TODO: consider enabling
 		'unicorn/no-hex-escape': 'off',
@@ -141,6 +142,7 @@ export const linter = defineConfig({
 		'unicorn/no-process-exit': 'off', // TODO: consider enabling
 		'unicorn/no-typeof-undefined': 'off', // TODO: consider enabling
 		'unicorn/prefer-module': 'off', // TODO: consider enabling
+		'unicorn/prefer-number-coercion': 'off', // TODO: consider enabling
 		'react/jsx-filename-extension': ['error', {extensions: ['.tsx']}],
 		'react/jsx-max-depth': ['error', {max: 5}],
 		'react/react-in-jsx-scope': 'off',

@@ -45,7 +45,7 @@ export class Cache {
 
 	private async acquireLock(timeoutMs = 5000): Promise<void> {
 		const start = Date.now();
-		// eslint-disable-next-line no-await-in-loop
+		// eslint-disable-next-line no-await-in-loop no-unreachable-loop
 		while (Date.now() - start < timeoutMs) {
 			try {
 				// eslint-disable-next-line no-await-in-loop

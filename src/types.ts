@@ -119,7 +119,9 @@ export const PackageListSchema = z
 		}),
 		z.array(
 			z.object({
+				// oxlint-disable-next-line unicorn/max-nested-calls
 				dependencies: z.record(z.string(), z.object({version: z.string().optional()})).optional(),
+				// oxlint-disable-next-line unicorn/max-nested-calls
 				devDependencies: z.record(z.string(), z.object({version: z.string().optional()})).optional(),
 			}),
 		),

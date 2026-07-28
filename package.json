@@ -1,6 +1,6 @@
 {
 	"name": "depvital",
-	"version": "0.9.2",
+	"version": "0.9.3",
 	"description": "A production-ready CLI tool for analyzing project dependencies' health, security, and maintenance.",
 	"keywords": [
 		"audit",

@@ -388,6 +388,7 @@ describe('package-manager', () => {
 			const audit = await getAudit('npm');
 			expect(audit.vulnerabilities).toHaveLength(0);
 		});
+
 		it('should parse npm audit json', async () => {
 			vi.mocked(exec.runCommand).mockResolvedValue({
 				stdout: JSON.stringify({
